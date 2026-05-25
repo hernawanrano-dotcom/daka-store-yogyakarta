@@ -1,0 +1,49 @@
+# Core Backend (AI-1)
+apps/api-gateway/                    @ai-1
+apps/backend/src/modules/user/       @ai-1
+apps/backend/src/modules/auth/       @ai-1
+packages/shared-config/              @ai-1
+packages/shared-validation/          @ai-1
+
+# Product Domain (AI-2)
+apps/backend/src/modules/product/    @ai-2
+apps/backend/src/modules/review/     @ai-2
+apps/backend/src/modules/wishlist/   @ai-2
+
+# Payment & Ledger (AI-3) - EXCLUSIVE
+apps/backend/src/modules/payment/    @ai-3
+apps/backend/src/modules/ledger/     @ai-3
+
+# Courier Domain (AI-4) - EXCLUSIVE
+apps/backend/src/modules/courier/    @ai-4
+
+# Order Domain (AI-5)
+apps/backend/src/modules/order/      @ai-5
+apps/backend/src/modules/cart/       @ai-5
+apps/backend/src/modules/voucher/    @ai-5
+
+# Engagement Domain (AI-6)
+apps/backend/src/modules/chat/       @ai-6
+apps/backend/src/modules/notification/@ai-6
+apps/backend/src/modules/flash-sale/ @ai-6
+apps/backend/src/modules/dispute/    @ai-6
+
+# Frontend (AI-5)
+apps/customer-web/                   @ai-5
+apps/seller-dashboard/               @ai-5
+apps/admin-dashboard/                @ai-5
+packages/ui-kit/                     @ai-5
+
+# DevOps (AI-6)
+docker/                              @ai-6
+k8s/                                 @ai-6
+monitoring/                          @ai-6
+.github/workflows/                   @ai-6
+scripts/                             @ai-6
+
+# Shared (needs review from all)
+packages/shared-types/               @ai-1 @ai-2 @ai-3 @ai-4 @ai-5 @ai-6
+packages/shared-events/              @ai-1 @ai-2 @ai-3 @ai-4 @ai-5 @ai-6
+
+# Documentation (AI Architect)
+docs/                                @system-architect

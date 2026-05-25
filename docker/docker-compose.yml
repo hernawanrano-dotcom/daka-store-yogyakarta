@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: daka-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: daka
+      POSTGRES_PASSWORD: daka123
+      POSTGRES_DB: daka_store
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U daka"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - daka-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: daka-redis-dev
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - daka-network
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: daka-meilisearch-dev
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: masterKey123
+      MEILI_ENV: development
+    volumes:
+      - meilisearch_data:/meili_data
+    networks:
+      - daka-network
+
+networks:
+  daka-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  meilisearch_data:
