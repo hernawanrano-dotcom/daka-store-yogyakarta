@@ -1,28 +1,28 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './prisma/prisma.module';
+import { RedisModule } from './redis/redis.module';
 import { QueueModule } from './queue/queue.module';
-import { CloudinaryModule } from '../../../infrastructure/cloudinary/cloudinary.module';
-import { MeilisearchModule } from '../../../infrastructure/meilisearch/meilisearch.module';
 
-// Domain Modules - AI-1 (Core)
+// Domain Modules - AI-1 (User & Auth)
 import { UserModule } from './modules/user/user.module';
 import { AuthModule } from './modules/auth/auth.module';
 
 // Domain Modules - AI-2 (Product)
-import { CategoryModule } from './modules/category/category.module';
 import { ProductModule } from './modules/product/product.module';
-import { WishlistModule } from './modules/wishlist/wishlist.module';
 import { ReviewModule } from './modules/review/review.module';
+import { WishlistModule } from './modules/wishlist/wishlist.module';
+import { AddressModule } from './modules/address/address.module';
 
 // Domain Modules - AI-3 (Payment & Ledger)
 import { PaymentModule } from './modules/payment/payment.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
 
-// Domain Modules - AI-4 (Courier)
+// Domain Modules - AI-4 (Courier & Tracking)
 import { CourierModule } from './modules/courier/courier.module';
 
-// Domain Modules - AI-5 (Order)
+// Domain Modules - AI-5 (Cart, Order, Voucher)
 import { CartModule } from './modules/cart/cart.module';
 import { OrderModule } from './modules/order/order.module';
 import { VoucherModule } from './modules/voucher/voucher.module';
@@ -35,45 +35,47 @@ import { DisputeModule } from './modules/dispute/dispute.module';
 
 @Module({
   imports: [
-    // Config
+    // Core Modules
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ScheduleModule.forRoot(),
 
-    // Infrastructure (Global)
+    // Infrastructure Modules
     PrismaModule,
+    RedisModule,
     QueueModule,
-    CloudinaryModule,
-    MeilisearchModule,
 
-    // Domain Modules - AI-1
+    // Domain Modules - AI-1 (User & Auth)
     UserModule,
     AuthModule,
 
-    // Domain Modules - AI-2 (PRODUCT ENGINEER - GUE)
-    CategoryModule,
+    // Domain Modules - AI-2 (Product)
     ProductModule,
-    WishlistModule,
     ReviewModule,
+    WishlistModule,
 
-    // Domain Modules - AI-3
+    // Domain Modules - AI-3 (Payment & Ledger)
     PaymentModule,
     LedgerModule,
 
-    // Domain Modules - AI-4
+    // Domain Modules - AI-4 (Courier & Tracking)
     CourierModule,
 
-    // Domain Modules - AI-5
+    // Domain Modules - AI-5 (Cart, Order, Voucher) ✅ SUDAH DI-IMPORT
     CartModule,
     OrderModule,
+    AddressModule,
     VoucherModule,
 
-    // Domain Modules - AI-6
+    // Domain Modules - AI-6 (Engagement)
     ChatModule,
     NotificationModule,
     FlashSaleModule,
     DisputeModule,
   ],
+  controllers: [],
+  providers: [],
 })
 export class AppModule {}

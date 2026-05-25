@@ -25,11 +25,11 @@ export class AuthController {
   async login(
     @Body() dto: LoginDto,
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
+    @Res({ passthrough: true }) res: Response
   ) {
-    const ipAddress = req.ip || req.headers['x-forwarded-for'] as string || 'unknown';
+    const ipAddress = req.ip || (req.headers['x-forwarded-for'] as string) || 'unknown';
     const userAgent = req.headers['user-agent'] || 'unknown';
-    const deviceId = req.headers['x-device-id'] as string || 'unknown';
+    const deviceId = (req.headers['x-device-id'] as string) || 'unknown';
 
     const result = await this.authService.login(dto, ipAddress, userAgent, deviceId);
 
@@ -54,11 +54,8 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
-  async refresh(
-    @Body() dto: RefreshDto,
-    @Req() req: Request,
-  ) {
-    const deviceId = req.headers['x-device-id'] as string || 'unknown';
+  async refresh(@Body() dto: RefreshDto, @Req() req: Request) {
+    const deviceId = (req.headers['x-device-id'] as string) || 'unknown';
     const result = await this.authService.refreshToken(dto.refreshToken, deviceId);
 
     return {
@@ -75,9 +72,9 @@ export class AuthController {
   async logout(
     @Body() dto: RefreshDto,
     @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
+    @Res({ passthrough: true }) res: Response
   ) {
-    const deviceId = req.headers['x-device-id'] as string || 'unknown';
+    const deviceId = (req.headers['x-device-id'] as string) || 'unknown';
     await this.authService.logout(dto.refreshToken, deviceId);
 
     res.clearCookie('refreshToken');

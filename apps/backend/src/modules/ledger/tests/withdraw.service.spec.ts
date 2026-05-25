@@ -70,7 +70,7 @@ describe('WithdrawService', () => {
         100000,
         'BCA',
         '1234567890',
-        'Budi Santoso',
+        'Budi Santoso'
       );
 
       expect(result).toEqual(mockWithdraw);
@@ -81,7 +81,7 @@ describe('WithdrawService', () => {
       (walletService.getWalletByUserId as jest.Mock).mockResolvedValue(mockWallet);
 
       await expect(
-        service.requestWithdraw('user_001', 10000, 'BCA', '1234567890', 'Budi Santoso'),
+        service.requestWithdraw('user_001', 10000, 'BCA', '1234567890', 'Budi Santoso')
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -89,15 +89,18 @@ describe('WithdrawService', () => {
       (walletService.getWalletByUserId as jest.Mock).mockResolvedValue(mockWallet);
 
       await expect(
-        service.requestWithdraw('user_001', 20000000, 'BCA', '1234567890', 'Budi Santoso'),
+        service.requestWithdraw('user_001', 20000000, 'BCA', '1234567890', 'Budi Santoso')
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw error if insufficient balance', async () => {
-      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({ ...mockWallet, balance: 50000 });
+      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({
+        ...mockWallet,
+        balance: 50000,
+      });
 
       await expect(
-        service.requestWithdraw('user_001', 100000, 'BCA', '1234567890', 'Budi Santoso'),
+        service.requestWithdraw('user_001', 100000, 'BCA', '1234567890', 'Budi Santoso')
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -119,7 +122,9 @@ describe('WithdrawService', () => {
     it('should throw error if withdraw not found', async () => {
       (prisma.withdraw.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(service.approveWithdraw('wd_999', 'admin_001')).rejects.toThrow(BadRequestException);
+      await expect(service.approveWithdraw('wd_999', 'admin_001')).rejects.toThrow(
+        BadRequestException
+      );
     });
   });
 

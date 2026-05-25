@@ -20,7 +20,7 @@ export class PollingProcessor extends WorkerHost {
   constructor(
     private prisma: PrismaService,
     private registry: CourierRegistry,
-    private courierService: CourierService,
+    private courierService: CourierService
   ) {
     super();
   }
@@ -42,7 +42,11 @@ export class PollingProcessor extends WorkerHost {
       this.logger.log(`Polling update for ${courierName}: ${trackingStatus.status}`);
 
       // Kalau status sudah final (delivered/failed), stop polling
-      if (trackingStatus.status === 'delivered' || trackingStatus.status === 'failed' || trackingStatus.status === 'returned') {
+      if (
+        trackingStatus.status === 'delivered' ||
+        trackingStatus.status === 'failed' ||
+        trackingStatus.status === 'returned'
+      ) {
         this.logger.log(`Final status reached for shipment ${shipmentId}, stopping polling`);
         return { success: true, stopPolling: true };
       }
@@ -93,7 +97,9 @@ export class PollingProcessor extends WorkerHost {
 
         await this.courierService.updateTrackingStatus(shipment.id, trackingStatus);
 
-        this.logger.debug(`Polled ${shipment.courierName} ${shipment.trackingNumber}: ${trackingStatus.status}`);
+        this.logger.debug(
+          `Polled ${shipment.courierName} ${shipment.trackingNumber}: ${trackingStatus.status}`
+        );
       } catch (error) {
         this.logger.error(`Failed to poll shipment ${shipment.id}: ${error.message}`);
       }

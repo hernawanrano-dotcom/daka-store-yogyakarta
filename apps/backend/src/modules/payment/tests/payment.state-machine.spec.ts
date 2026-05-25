@@ -76,17 +76,17 @@ describe('PaymentStateMachine', () => {
     it('should throw error if payment not found', async () => {
       (prisma.payment.findUnique as jest.Mock).mockResolvedValue(null);
 
-      await expect(
-        stateMachine.transition('pay_999', PaymentStatus.SUCCESS),
-      ).rejects.toThrow(BadRequestException);
+      await expect(stateMachine.transition('pay_999', PaymentStatus.SUCCESS)).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should throw error on invalid transition', async () => {
       (prisma.payment.findUnique as jest.Mock).mockResolvedValue(mockPayment);
 
-      await expect(
-        stateMachine.transition('pay_001', PaymentStatus.REFUNDED),
-      ).rejects.toThrow(BadRequestException);
+      await expect(stateMachine.transition('pay_001', PaymentStatus.REFUNDED)).rejects.toThrow(
+        BadRequestException
+      );
     });
   });
 });

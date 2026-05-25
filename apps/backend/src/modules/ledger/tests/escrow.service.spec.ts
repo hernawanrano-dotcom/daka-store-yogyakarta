@@ -47,7 +47,10 @@ describe('EscrowService', () => {
 
   describe('holdFunds', () => {
     it('should hold funds in escrow', async () => {
-      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({ id: 'wal_buyer', balance: 500000 });
+      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({
+        id: 'wal_buyer',
+        balance: 500000,
+      });
       (walletService.updateBalance as jest.Mock).mockResolvedValue(400000);
       (journalService.createEntry as jest.Mock).mockResolvedValue({});
       (prisma.outboxMessage.create as jest.Mock).mockResolvedValue({});
@@ -62,7 +65,10 @@ describe('EscrowService', () => {
 
   describe('releaseFunds', () => {
     it('should release funds to seller with fee', async () => {
-      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({ id: 'wal_seller', balance: 0 });
+      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({
+        id: 'wal_seller',
+        balance: 0,
+      });
       (walletService.updateBalance as jest.Mock).mockResolvedValue(97000);
       (journalService.createEntry as jest.Mock).mockResolvedValue({});
       (prisma.outboxMessage.create as jest.Mock).mockResolvedValue({});
@@ -75,7 +81,10 @@ describe('EscrowService', () => {
     });
 
     it('should use default fee percentage 3%', async () => {
-      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({ id: 'wal_seller', balance: 0 });
+      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({
+        id: 'wal_seller',
+        balance: 0,
+      });
       (walletService.updateBalance as jest.Mock).mockResolvedValue(97000);
       (journalService.createEntry as jest.Mock).mockResolvedValue({});
       (prisma.outboxMessage.create as jest.Mock).mockResolvedValue({});
@@ -88,7 +97,10 @@ describe('EscrowService', () => {
 
   describe('refundFromEscrow', () => {
     it('should refund from escrow to buyer', async () => {
-      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({ id: 'wal_buyer', balance: 0 });
+      (walletService.getWalletByUserId as jest.Mock).mockResolvedValue({
+        id: 'wal_buyer',
+        balance: 0,
+      });
       (walletService.updateBalance as jest.Mock).mockResolvedValue(100000);
       (journalService.createEntry as jest.Mock).mockResolvedValue({});
 

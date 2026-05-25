@@ -52,11 +52,11 @@ describe('JntAdapter', () => {
 
     it('should return rates array', async () => {
       const rates = await adapter.getRates(mockParams);
-      
+
       expect(rates).toBeDefined();
       expect(Array.isArray(rates)).toBe(true);
       expect(rates.length).toBeGreaterThan(0);
-      
+
       const firstRate = rates[0];
       expect(firstRate.courierName).toBe('JNT');
       expect(firstRate.price).toBeGreaterThan(0);
@@ -65,16 +65,16 @@ describe('JntAdapter', () => {
 
     it('should include Reguler service', async () => {
       const rates = await adapter.getRates(mockParams);
-      const regulerService = rates.find(r => r.service === 'Reguler');
-      
+      const regulerService = rates.find((r) => r.service === 'Reguler');
+
       expect(regulerService).toBeDefined();
       expect(regulerService?.price).toBeGreaterThan(0);
     });
 
     it('should include Express service', async () => {
       const rates = await adapter.getRates(mockParams);
-      const expressService = rates.find(r => r.service === 'Express');
-      
+      const expressService = rates.find((r) => r.service === 'Express');
+
       expect(expressService).toBeDefined();
       expect(expressService?.price).toBeGreaterThan(0);
     });
@@ -112,7 +112,7 @@ describe('JntAdapter', () => {
 
     it('should return order result', async () => {
       const result = await adapter.createOrder(mockOrderParams);
-      
+
       expect(result).toBeDefined();
       expect(result.orderId).toBeDefined();
       expect(result.trackingNumber).toBeDefined();
@@ -122,7 +122,7 @@ describe('JntAdapter', () => {
     it('should generate unique tracking number', async () => {
       const result1 = await adapter.createOrder(mockOrderParams);
       const result2 = await adapter.createOrder(mockOrderParams);
-      
+
       expect(result1.trackingNumber).not.toBe(result2.trackingNumber);
     });
   });
@@ -131,7 +131,7 @@ describe('JntAdapter', () => {
     it('should return tracking status for valid tracking number', async () => {
       const trackingNumber = 'JNT1234567890';
       const status = await adapter.trackOrder(trackingNumber);
-      
+
       expect(status).toBeDefined();
       expect(['pending', 'picked_up', 'in_transit', 'delivered']).toContain(status.status);
       expect(status.location).toBeDefined();
@@ -140,7 +140,7 @@ describe('JntAdapter', () => {
 
     it('should handle invalid tracking number gracefully', async () => {
       const status = await adapter.trackOrder('INVALID');
-      
+
       expect(status).toBeDefined();
       expect(status.status).toBeDefined();
     });
@@ -149,7 +149,7 @@ describe('JntAdapter', () => {
   describe('cancelOrder', () => {
     it('should return true for cancel attempt', async () => {
       const result = await adapter.cancelOrder('order_123');
-      
+
       expect(result).toBe(true);
     });
   });

@@ -3,7 +3,7 @@ import { FlashSaleService, BuyFlashSaleDTO } from './flash-sale.service';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@daka/shared-types';
 
 interface RequestWithUser extends Request {
   user: { id: string; email: string; role: string };
@@ -45,10 +45,7 @@ export class FlashSaleController {
 
   @Post('buy')
   @UseGuards(JwtAuthGuard)
-  async buyFlashSale(
-    @Req() req: RequestWithUser,
-    @Body() buyDto: BuyFlashSaleDTO,
-  ) {
+  async buyFlashSale(@Req() req: RequestWithUser, @Body() buyDto: BuyFlashSaleDTO) {
     const result = await this.flashSaleService.buyFlashSale({
       ...buyDto,
       userId: req.user.id,

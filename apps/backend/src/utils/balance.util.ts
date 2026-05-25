@@ -38,7 +38,7 @@ export function isValidAmount(amount: number, max: number = 100000000): boolean 
  * @returns Fee dalam integer Rupiah (pembulatan ke bawah)
  */
 export function calculateFee(amount: number, percentage: number): number {
-  return Math.floor(amount * percentage / 100);
+  return Math.floor((amount * percentage) / 100);
 }
 
 /**

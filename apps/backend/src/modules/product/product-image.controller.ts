@@ -28,7 +28,7 @@ export class ProductImageController {
   async uploadImages(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Body() files: UploadImageDto[],
+    @Body() files: UploadImageDto[]
   ) {
     const data = await this.productImageService.uploadImages(sellerId, productId, files);
     return {
@@ -42,7 +42,7 @@ export class ProductImageController {
   async uploadSingleImage(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Body() file: UploadImageDto,
+    @Body() file: UploadImageDto
   ) {
     const data = await this.productImageService.uploadSingleImage(sellerId, productId, file);
     return {
@@ -57,7 +57,7 @@ export class ProductImageController {
   async deleteImage(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Param('imageId') imageId: string,
+    @Param('imageId') imageId: string
   ) {
     await this.productImageService.deleteImage(sellerId, productId, imageId);
     return {
@@ -71,7 +71,7 @@ export class ProductImageController {
   async setPrimaryImage(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Body() dto: SetPrimaryImageDto,
+    @Body() dto: SetPrimaryImageDto
   ) {
     const data = await this.productImageService.setPrimaryImage(sellerId, productId, dto);
     return {
@@ -85,7 +85,7 @@ export class ProductImageController {
   async reorderImages(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Body() reorders: ReorderImageDto[],
+    @Body() reorders: ReorderImageDto[]
   ) {
     const data = await this.productImageService.reorderImages(sellerId, productId, reorders);
     return {

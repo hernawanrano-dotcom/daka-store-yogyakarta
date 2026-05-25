@@ -7,11 +7,7 @@ export class GatewayController {
   constructor(private readonly gatewayService: GatewayService) {}
 
   @All('*')
-  async handleRequest(
-    @Req() req: Request,
-    @Res() res: Response,
-    @Next() next: NextFunction,
-  ) {
+  async handleRequest(@Req() req: Request, @Res() res: Response, @Next() next: NextFunction) {
     return this.gatewayService.proxyRequest(req, res, next);
   }
 }

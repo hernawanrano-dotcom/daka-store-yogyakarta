@@ -23,7 +23,7 @@ import { MeilisearchModule } from '../../../infrastructure/meilisearch/meilisear
       { name: 'search-sync' },
       { name: 'notification' },
       { name: 'tracking' },
-      { name: 'refund' },
+      { name: 'refund' }
     ),
     PrismaModule,
     MeilisearchModule,

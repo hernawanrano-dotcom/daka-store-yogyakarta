@@ -25,7 +25,9 @@ export class JournalService {
     this.logger.debug(`Journal entry created: ${data.account} D:${data.debit} C:${data.credit}`);
   }
 
-  async getBalanceForAccount(account: string): Promise<{ debit: number; credit: number; balance: number }> {
+  async getBalanceForAccount(
+    account: string
+  ): Promise<{ debit: number; credit: number; balance: number }> {
     const entries = await this.prisma.journalEntry.findMany({
       where: { account },
     });

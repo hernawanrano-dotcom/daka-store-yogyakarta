@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from '../../infrastructure/redis/redis.service';
+import { RedisService } from '../../redis/redis.service';
 
 @Injectable()
 export class CartService {
@@ -8,7 +8,7 @@ export class CartService {
 
   constructor(
     private prisma: PrismaService,
-    private redis: RedisService,
+    private redis: RedisService
   ) {}
 
   async getCart(userId: string | null, sessionId: string | null) {
@@ -20,7 +20,7 @@ export class CartService {
     return { items: [], totalPrice: 0 };
   }
 
-  private async getUserCart(userId: string) {
+  public async getUserCart(userId: string) {
     const cart = await this.prisma.cart.findUnique({
       where: { user_id: userId },
       include: {
@@ -69,7 +69,7 @@ export class CartService {
     return { items, totalPrice };
   }
 
-  private async getGuestCart(sessionId: string) {
+  public async getGuestCart(sessionId: string) {
     const cacheKey = `cart:guest:${sessionId}`;
     const cached = await this.redis.get(cacheKey);
 
@@ -85,7 +85,7 @@ export class CartService {
     sessionId: string | null,
     productId: string,
     variantId: string | null,
-    quantity: number,
+    quantity: number
   ) {
     if (quantity < 1) {
       throw new BadRequestException('Quantity must be at least 1');
@@ -113,7 +113,12 @@ export class CartService {
     throw new BadRequestException('No user or session ID provided');
   }
 
-  private async addToUserCart(userId: string, productId: string, variantId: string | null, quantity: number) {
+  public async addToUserCart(
+    userId: string,
+    productId: string,
+    variantId: string | null,
+    quantity: number
+  ) {
     let cart = await this.prisma.cart.findUnique({
       where: { user_id: userId },
     });
@@ -152,7 +157,13 @@ export class CartService {
     return this.getUserCart(userId);
   }
 
-  private async addToGuestCart(sessionId: string, productId: string, variantId: string | null, quantity: number, price: number) {
+  public async addToGuestCart(
+    sessionId: string,
+    productId: string,
+    variantId: string | null,
+    quantity: number,
+    price: number
+  ) {
     const cacheKey = `cart:guest:${sessionId}`;
     let cart = await this.redis.get(cacheKey);
 
@@ -163,12 +174,13 @@ export class CartService {
     }
 
     const existingIndex = cart.items.findIndex(
-      (item: any) => item.productId === productId && item.variantId === variantId,
+      (item: any) => item.productId === productId && item.variantId === variantId
     );
 
     if (existingIndex >= 0) {
       cart.items[existingIndex].quantity += quantity;
-      cart.items[existingIndex].totalPrice = cart.items[existingIndex].price * cart.items[existingIndex].quantity;
+      cart.items[existingIndex].totalPrice =
+        cart.items[existingIndex].price * cart.items[existingIndex].quantity;
     } else {
       cart.items.push({
         id: `temp_${Date.now()}_${Math.random()}`,
@@ -187,7 +199,12 @@ export class CartService {
     return cart;
   }
 
-  async updateCartItem(userId: string | null, sessionId: string | null, itemId: string, quantity: number) {
+  async updateCartItem(
+    userId: string | null,
+    sessionId: string | null,
+    itemId: string,
+    quantity: number
+  ) {
     if (quantity < 0) {
       throw new BadRequestException('Quantity cannot be negative');
     }

@@ -60,9 +60,10 @@ export class EmailService {
       return;
     }
 
-    const subject = role === 'seller' 
-      ? `Pesanan Baru #${orderId} - Daka Store`
-      : `Konfirmasi Pesanan #${orderId} - Daka Store`;
+    const subject =
+      role === 'seller'
+        ? `Pesanan Baru #${orderId} - Daka Store`
+        : `Konfirmasi Pesanan #${orderId} - Daka Store`;
 
     const msg = {
       to,

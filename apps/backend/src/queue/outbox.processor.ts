@@ -10,7 +10,7 @@ export class OutboxProcessor extends WorkerHost {
 
   constructor(
     private prisma: PrismaService,
-    private eventEmitter: EventEmitter2,
+    private eventEmitter: EventEmitter2
   ) {
     super();
   }

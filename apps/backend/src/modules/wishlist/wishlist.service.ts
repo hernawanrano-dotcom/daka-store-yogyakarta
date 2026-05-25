@@ -87,7 +87,11 @@ export class WishlistService {
     });
   }
 
-  async getUserWishlist(userId: string, page: number = 1, limit: number = 10): Promise<{
+  async getUserWishlist(
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ): Promise<{
     data: WishlistWithProduct[];
     meta: {
       page: number;

@@ -9,14 +9,14 @@ import { CloudinaryService } from '../../../infrastructure/cloudinary/cloudinary
 import { CreateReviewDto, UpdateReviewDto, ReplyReviewDto, ReviewQueryDto } from './dto/review.dto';
 import { Review, ReviewImage } from '@prisma/client';
 import { EventProducer } from '../../queue/producers/event.producer';
-import { ProductEvents } from '@daka/shared-types';
+import { ProductEvents } from '@daka/shared-events'; // ✅ DIPERBAIKI: dari shared-events
 
 @Injectable()
 export class ReviewService {
   constructor(
     private prisma: PrismaService,
     private cloudinary: CloudinaryService,
-    private eventProducer: EventProducer,
+    private eventProducer: EventProducer
   ) {}
 
   async create(userId: string, data: CreateReviewDto): Promise<Review> {
@@ -30,9 +30,7 @@ export class ReviewService {
     });
 
     if (!subOrder) {
-      throw new BadRequestException(
-        'You can only review products from completed orders',
-      );
+      throw new BadRequestException('You can only review products from completed orders');
     }
 
     // Check if order item exists for this product
@@ -67,7 +65,7 @@ export class ReviewService {
         this.cloudinary.uploadImage(image, {
           folder: `daka-store/reviews/${data.productId}`,
           transformation: [{ width: 600, height: 600, crop: 'limit', quality: 'auto' }],
-        }),
+        })
       );
       const uploadResults = await Promise.all(uploadPromises);
       uploadedImages = uploadResults.map((result) => ({
@@ -75,56 +73,59 @@ export class ReviewService {
       }));
     }
 
-    // Create review
-    const review = await this.prisma.review.create({
-      data: {
-        userId,
-        productId: data.productId,
-        subOrderId: data.orderId,
-        rating: data.rating,
-        comment: data.comment,
-        isVerifiedPurchase: true,
-        images: {
-          create: uploadedImages,
-        },
-      },
-      include: {
-        images: true,
-        user: {
-          select: {
-            id: true,
-            full_name: true,
-            avatar: true,
+    // Create review using OUTBOX PATTERN (transaction)
+    const review = await this.prisma.$transaction(async (tx) => {
+      const newReview = await tx.review.create({
+        data: {
+          userId,
+          productId: data.productId,
+          subOrderId: data.orderId,
+          rating: data.rating,
+          comment: data.comment,
+          isVerifiedPurchase: true,
+          images: {
+            create: uploadedImages,
           },
         },
-      },
+        include: {
+          images: true,
+          user: {
+            select: {
+              id: true,
+              full_name: true,
+              avatar: true,
+            },
+          },
+        },
+      });
+
+      // ✅ PUBLISH EVENT VIA OUTBOX
+      await tx.outboxMessage.create({
+        data: {
+          eventName: 'REVIEW_CREATED',
+          aggregateId: newReview.id,
+          payload: {
+            reviewId: newReview.id,
+            productId: data.productId,
+            userId: userId,
+            rating: data.rating,
+            comment: data.comment,
+            createdAt: new Date().toISOString(),
+          },
+          status: 'pending',
+        },
+      });
+
+      return newReview;
     });
 
     // Update product rating average
     await this.updateProductRating(data.productId);
 
-    // Publish event
-    await this.eventProducer.publish({
-      eventName: ProductEvents.REVIEW_CREATED,
-      aggregateId: review.id,
-      payload: {
-        reviewId: review.id,
-        productId: data.productId,
-        userId,
-        rating: data.rating,
-        comment: data.comment,
-        createdAt: new Date().toISOString(),
-      },
-    });
-
     return review;
   }
 
-  async update(
-    userId: string,
-    reviewId: string,
-    data: UpdateReviewDto,
-  ): Promise<Review> {
+  async update(userId: string, reviewId: string, data: UpdateReviewDto): Promise<Review> {
     const review = await this.prisma.review.findFirst({
       where: { id: reviewId, userId },
     });
@@ -178,11 +179,7 @@ export class ReviewService {
     await this.updateProductRating(review.productId);
   }
 
-  async replyToReview(
-    sellerId: string,
-    reviewId: string,
-    data: ReplyReviewDto,
-  ): Promise<Review> {
+  async replyToReview(sellerId: string, reviewId: string, data: ReplyReviewDto): Promise<Review> {
     const review = await this.prisma.review.findFirst({
       where: { id: reviewId },
       include: {
@@ -212,7 +209,7 @@ export class ReviewService {
 
   async getProductReviews(
     productId: string,
-    query: ReviewQueryDto,
+    query: ReviewQueryDto
   ): Promise<{
     data: any[];
     meta: {
@@ -228,7 +225,7 @@ export class ReviewService {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    let where: any = { productId };
+    const where: any = { productId };
     if (rating) {
       where.rating = rating;
     }
@@ -300,7 +297,7 @@ export class ReviewService {
   async getUserReviews(
     userId: string,
     page: number = 1,
-    limit: number = 10,
+    limit: number = 10
   ): Promise<{
     data: any[];
     meta: {
@@ -410,7 +407,7 @@ export class ReviewService {
   async addReviewImages(
     userId: string,
     reviewId: string,
-    images: string[],
+    images: string[]
   ): Promise<ReviewImage[]> {
     const review = await this.prisma.review.findFirst({
       where: { id: reviewId, userId },
@@ -424,7 +421,7 @@ export class ReviewService {
       this.cloudinary.uploadImage(image, {
         folder: `daka-store/reviews/${review.productId}`,
         transformation: [{ width: 600, height: 600, crop: 'limit', quality: 'auto' }],
-      }),
+      })
     );
 
     const uploadResults = await Promise.all(uploadPromises);
@@ -436,18 +433,14 @@ export class ReviewService {
             reviewId,
             imageUrl: result.secure_url,
           },
-        }),
-      ),
+        })
+      )
     );
 
     return createdImages;
   }
 
-  async deleteReviewImage(
-    userId: string,
-    reviewId: string,
-    imageId: string,
-  ): Promise<void> {
+  async deleteReviewImage(userId: string, reviewId: string, imageId: string): Promise<void> {
     const review = await this.prisma.review.findFirst({
       where: { id: reviewId, userId },
       include: { images: true },

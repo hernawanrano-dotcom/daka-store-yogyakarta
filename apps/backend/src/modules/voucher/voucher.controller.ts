@@ -14,7 +14,8 @@ import { VoucherService, CreateVoucherDto, ApplyVoucherDto } from './voucher.ser
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole, VoucherType } from '@prisma/client';
+import { VoucherType } from '@prisma/client';
+import { UserRole } from '@daka/shared-types';
 
 interface RequestWithUser extends Request {
   user?: { id: string; email: string; role: string };

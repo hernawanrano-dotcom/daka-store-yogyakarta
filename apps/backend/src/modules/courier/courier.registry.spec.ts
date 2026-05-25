@@ -42,7 +42,7 @@ describe('CourierRegistry', () => {
     }).compile();
 
     registry = module.get<CourierRegistry>(CourierRegistry);
-    
+
     // Manually register adapters
     registry.registerAdapter('JNT', mockJntAdapter as unknown as CourierAdapter);
     registry.registerAdapter('GOJEK', mockGojekAdapter as unknown as CourierAdapter);
@@ -51,10 +51,12 @@ describe('CourierRegistry', () => {
 
   describe('registerAdapter', () => {
     it('should register adapter successfully', () => {
-      const mockAdapter = { getName: jest.fn().mockReturnValue('TEST') } as unknown as CourierAdapter;
-      
+      const mockAdapter = {
+        getName: jest.fn().mockReturnValue('TEST'),
+      } as unknown as CourierAdapter;
+
       registry.registerAdapter('TEST', mockAdapter);
-      
+
       expect(registry.getAvailableCouriers()).toContain('TEST');
     });
   });
@@ -62,18 +64,18 @@ describe('CourierRegistry', () => {
   describe('getAdapter', () => {
     it('should return adapter for existing courier', () => {
       const adapter = registry.getAdapter('JNT');
-      
+
       expect(adapter).toBeDefined();
       expect(adapter.getName()).toBe('JNT');
     });
 
     it('should throw error for non-existing courier', () => {
-      expect(() => registry.getAdapter('UNKNOWN')).toThrow('Courier adapter \'UNKNOWN\' not found');
+      expect(() => registry.getAdapter('UNKNOWN')).toThrow("Courier adapter 'UNKNOWN' not found");
     });
 
     it('should be case insensitive', () => {
       const adapter = registry.getAdapter('jnt');
-      
+
       expect(adapter).toBeDefined();
       expect(adapter.getName()).toBe('JNT');
     });
@@ -82,7 +84,7 @@ describe('CourierRegistry', () => {
   describe('getAvailableCouriers', () => {
     it('should return list of registered couriers', () => {
       const couriers = registry.getAvailableCouriers();
-      
+
       expect(couriers).toContain('JNT');
       expect(couriers).toContain('GOJEK');
       expect(couriers).toContain('HERONA');
@@ -103,7 +105,7 @@ describe('CourierRegistry', () => {
     it('should return rates from all adapters', async () => {
       const mockJntRates = [{ courierName: 'JNT', price: 15000 }];
       const mockGojekRates = [{ courierName: 'GOJEK', price: 25000 }];
-      
+
       mockJntAdapter.getRates.mockResolvedValue(mockJntRates);
       mockGojekAdapter.getRates.mockResolvedValue(mockGojekRates);
       mockHeronaAdapter.getRates.mockResolvedValue([]);
@@ -138,7 +140,7 @@ describe('CourierRegistry', () => {
       const mockJntRates = [{ courierName: 'JNT', price: 30000 }];
       const mockGojekRates = [{ courierName: 'GOJEK', price: 15000 }];
       const mockHeronaRates = [{ courierName: 'HERONA', price: 20000 }];
-      
+
       mockJntAdapter.getRates.mockResolvedValue(mockJntRates);
       mockGojekAdapter.getRates.mockResolvedValue(mockGojekRates);
       mockHeronaAdapter.getRates.mockResolvedValue(mockHeronaRates);

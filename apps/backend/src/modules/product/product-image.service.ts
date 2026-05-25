@@ -13,13 +13,13 @@ import { ProductImage } from '@prisma/client';
 export class ProductImageService {
   constructor(
     private prisma: PrismaService,
-    private cloudinary: CloudinaryService,
+    private cloudinary: CloudinaryService
   ) {}
 
   async uploadImages(
     sellerId: string,
     productId: string,
-    files: UploadImageDto[],
+    files: UploadImageDto[]
   ): Promise<ProductImage[]> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
@@ -33,13 +33,11 @@ export class ProductImageService {
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
+
       // Upload to Cloudinary
       const uploadResult = await this.cloudinary.uploadImage(file.image, {
         folder: `daka-store/products/${productId}`,
-        transformation: [
-          { width: 800, height: 800, crop: 'limit', quality: 'auto' },
-        ],
+        transformation: [{ width: 800, height: 800, crop: 'limit', quality: 'auto' }],
       });
 
       // Check if this is the first image (should be primary)
@@ -67,7 +65,7 @@ export class ProductImageService {
   async uploadSingleImage(
     sellerId: string,
     productId: string,
-    file: UploadImageDto,
+    file: UploadImageDto
   ): Promise<ProductImage> {
     const images = await this.uploadImages(sellerId, productId, [file]);
     return images[0];
@@ -131,7 +129,7 @@ export class ProductImageService {
   async setPrimaryImage(
     sellerId: string,
     productId: string,
-    dto: SetPrimaryImageDto,
+    dto: SetPrimaryImageDto
   ): Promise<ProductImage> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
@@ -166,7 +164,7 @@ export class ProductImageService {
   async reorderImages(
     sellerId: string,
     productId: string,
-    reorders: ReorderImageDto[],
+    reorders: ReorderImageDto[]
   ): Promise<ProductImage[]> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
@@ -191,7 +189,7 @@ export class ProductImageService {
       this.prisma.productImage.update({
         where: { id: reorder.imageId },
         data: { sortOrder: reorder.sortOrder },
-      }),
+      })
     );
 
     await this.prisma.$transaction(updates);

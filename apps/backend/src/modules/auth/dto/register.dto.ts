@@ -1,5 +1,5 @@
 import { IsEmail, IsString, MinLength, IsOptional, IsEnum } from 'class-validator';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@daka/shared-types';
 
 export class RegisterDto {
   @IsEmail()

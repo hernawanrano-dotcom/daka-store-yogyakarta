@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from '../../infrastructure/redis/redis.service';
+import { RedisService } from '../../redis/redis.service';
 import { PaymentStateMachine } from './payment.state-machine';
 import { MidtransClient } from './midtrans.client';
 import { PaymentStatus } from '@prisma/client';
@@ -13,7 +13,7 @@ export class PaymentWebhookService {
     private prisma: PrismaService,
     private redis: RedisService,
     private stateMachine: PaymentStateMachine,
-    private midtrans: MidtransClient,
+    private midtrans: MidtransClient
   ) {}
 
   async processWebhook(payload: any, signature: string): Promise<void> {

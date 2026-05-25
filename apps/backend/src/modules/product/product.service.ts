@@ -10,13 +10,13 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductQueryDto } from './dto/product-query.dto';
 import { Product, ProductVariant, Prisma } from '@prisma/client';
 import { EventProducer } from '../../queue/producers/event.producer';
-import { ProductEvents } from '@daka/shared-events';
+import { ProductEvents } from '@daka/shared-events'; // ✅ DIPERBAIKI: dari shared-events
 
 @Injectable()
 export class ProductService {
   constructor(
     private prisma: PrismaService,
-    private eventProducer: EventProducer,
+    private eventProducer: EventProducer
   ) {}
 
   async create(sellerId: string, data: CreateProductDto): Promise<Product> {
@@ -107,7 +107,7 @@ export class ProductService {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    let where: Prisma.ProductWhereInput = {
+    const where: Prisma.ProductWhereInput = {
       deletedAt: null,
       isActive: true,
     };

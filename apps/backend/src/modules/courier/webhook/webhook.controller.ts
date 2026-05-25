@@ -13,7 +13,7 @@ export class WebhookController {
   constructor(
     private readonly registry: CourierRegistry,
     private readonly courierService: CourierService,
-    @InjectQueue('tracking') private trackingQueue: Queue,
+    @InjectQueue('tracking') private trackingQueue: Queue
   ) {}
 
   /**
@@ -27,7 +27,7 @@ export class WebhookController {
     @Param('courierName') courierName: string,
     @Body() payload: any,
     @Headers() headers: Record<string, string>,
-    @Req() req: any,
+    @Req() req: any
   ) {
     this.logger.log(`Received webhook from ${courierName}`);
 
@@ -51,7 +51,7 @@ export class WebhookController {
         {
           attempts: 3,
           backoff: { type: 'exponential', delay: 1000 },
-        },
+        }
       );
 
       this.logger.debug(`Webhook from ${courierName} queued for processing`);
@@ -71,7 +71,7 @@ export class WebhookController {
     courierName: string,
     payload: any,
     headers: Record<string, string>,
-    req: any,
+    req: any
   ): boolean {
     // Untuk development, return true dulu
     if (process.env.NODE_ENV === 'development') {

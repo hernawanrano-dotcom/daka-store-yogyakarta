@@ -2,13 +2,13 @@
 
 /**
  * POS INDONESIA ADAPTER
- * 
+ *
  * CATATAN PENTING:
  * - POS Indonesia menggunakan protokol SOAP (bukan REST)
  * - Tidak memiliki webhook → WAJIB polling fallback
  * - Implementasi ini menggunakan axios dengan XML parsing
  * - Atau bisa menggunakan library 'soap' jika diperlukan
- * 
+ *
  * DOKUMENTASI:
  * - WSDL: https://api.posindonesia.co.id/wsdl
  * - API Documentation: https://developer.posindonesia.co.id
@@ -55,7 +55,7 @@ export class PosAdapter implements CourierAdapter {
       timeout: 45000, // SOAP biasanya lebih lambat
       headers: {
         'Content-Type': 'text/xml; charset=utf-8',
-        'SOAPAction': '',
+        SOAPAction: '',
       },
     });
 
@@ -64,7 +64,7 @@ export class PosAdapter implements CourierAdapter {
       (error) => {
         this.logger.error(`POS API Error: ${error.message}`, error.response?.data);
         throw error;
-      },
+      }
     );
   }
 
@@ -102,14 +102,14 @@ export class PosAdapter implements CourierAdapter {
     try {
       // SOAP Login Request
       const soapRequest = this.buildLoginSoapRequest(this.username, this.password);
-      
+
       const response = await this.client.post('/soap/login', soapRequest, {
         headers: { 'Content-Type': 'text/xml' },
       });
 
       // Parse SOAP response
       const token = this.parseLoginResponse(response.data);
-      
+
       if (token) {
         this.sessionToken = token;
         this.tokenExpiry = new Date(Date.now() + 23 * 60 * 60 * 1000); // 23 jam
@@ -132,10 +132,10 @@ export class PosAdapter implements CourierAdapter {
 
     try {
       await this.login();
-      
+
       // SOAP GetRates Request
       const soapRequest = this.buildGetRatesSoapRequest(params);
-      
+
       const response = await this.client.post('/soap/rates', soapRequest, {
         headers: { 'Content-Type': 'text/xml' },
       });
@@ -161,7 +161,7 @@ export class PosAdapter implements CourierAdapter {
 
       // SOAP CreateOrder Request
       const soapRequest = this.buildCreateOrderSoapRequest(params, totalWeight);
-      
+
       const response = await this.client.post('/soap/orders', soapRequest, {
         headers: { 'Content-Type': 'text/xml' },
       });
@@ -185,7 +185,7 @@ export class PosAdapter implements CourierAdapter {
 
       // SOAP Tracking Request
       const soapRequest = this.buildTrackingSoapRequest(trackingNumber);
-      
+
       const response = await this.client.post('/soap/tracking', soapRequest, {
         headers: { 'Content-Type': 'text/xml' },
       });
@@ -216,7 +216,7 @@ export class PosAdapter implements CourierAdapter {
       await this.login();
 
       const soapRequest = this.buildCancelOrderSoapRequest(orderId);
-      
+
       await this.client.post('/soap/orders/cancel', soapRequest, {
         headers: { 'Content-Type': 'text/xml' },
       });
@@ -344,7 +344,7 @@ export class PosAdapter implements CourierAdapter {
     // Untuk sementara return mock data
     const statusMatch = xmlData.match(/<tns:status>(.*?)<\/tns:status>/);
     const locationMatch = xmlData.match(/<tns:location>(.*?)<\/tns:location>/);
-    
+
     return {
       status: this.mapPosStatus(statusMatch ? statusMatch[1] : 'PENDING'),
       location: locationMatch ? locationMatch[1] : '',
@@ -366,19 +366,21 @@ export class PosAdapter implements CourierAdapter {
       .replace(/'/g, '&apos;');
   }
 
-  private mapPosStatus(status: string): 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned' {
+  private mapPosStatus(
+    status: string
+  ): 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned' {
     const statusUpper = status.toUpperCase();
     const map: Record<string, any> = {
-      'CREATED': 'pending',
-      'RECEIVED': 'pending',
-      'PROCESSING': 'pending',
-      'PICKED_UP': 'picked_up',
-      'IN_TRANSIT': 'in_transit',
-      'ARRIVED': 'in_transit',
-      'DELIVERED': 'delivered',
-      'FAILED': 'failed',
-      'RETURNED': 'returned',
-      'CANCELLED': 'failed',
+      CREATED: 'pending',
+      RECEIVED: 'pending',
+      PROCESSING: 'pending',
+      PICKED_UP: 'picked_up',
+      IN_TRANSIT: 'in_transit',
+      ARRIVED: 'in_transit',
+      DELIVERED: 'delivered',
+      FAILED: 'failed',
+      RETURNED: 'returned',
+      CANCELLED: 'failed',
     };
     return map[statusUpper] || 'pending';
   }
@@ -390,9 +392,10 @@ export class PosAdapter implements CourierAdapter {
       params.originLat || -7.7956,
       params.originLng || 110.3695,
       params.destLat || -7.7956,
-      params.destLng || 110.3695,
+      params.destLng || 110.3695
     );
-    const basePrice = 10000 + Math.floor(distance * 1500) + Math.floor((params.weightGram || 1000) / 1000) * 3000;
+    const basePrice =
+      10000 + Math.floor(distance * 1500) + Math.floor((params.weightGram || 1000) / 1000) * 3000;
 
     return [
       {
@@ -493,7 +496,10 @@ export class PosAdapter implements CourierAdapter {
     const dLng = this.toRad(lng2 - lng1);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      Math.cos(this.toRad(lat1)) *
+        Math.cos(this.toRad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }

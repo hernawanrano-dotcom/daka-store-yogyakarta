@@ -1,4 +1,8 @@
 packages:
   - "apps/*"
   - "services/*"
-  - "packages/*"
+  - "packages/shared-types"
+  - "packages/shared-events"
+  - "packages/shared-config"
+  - "packages/shared-validation"
+  - "packages/shared-utils"

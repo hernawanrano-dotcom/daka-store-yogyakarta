@@ -1,20 +1,11 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Body,
-  Param,
-  Query,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { OrderService, CheckoutDto } from './order.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole, OrderStatus } from '@prisma/client';
+import { OrderStatus } from '@prisma/client';
+import { UserRole } from '@daka/shared-types';
 
 interface RequestWithUser extends Request {
   user?: { id: string; email: string; role: string };
@@ -30,12 +21,18 @@ interface CancelOrderDto {
   reason: string;
 }
 
+interface RequestRefundDto {
+  reason: string;
+  amount: number;
+  evidenceUrls?: string[];
+}
+
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrderController {
   constructor(
     private orderService: OrderService,
-    private prisma: PrismaService,
+    private prisma: PrismaService
   ) {}
 
   /**
@@ -47,7 +44,7 @@ export class OrderController {
     @Req() req: RequestWithUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('status') status?: OrderStatus,
+    @Query('status') status?: OrderStatus
   ) {
     const userId = req.user?.id;
     if (!userId) {
@@ -62,7 +59,7 @@ export class OrderController {
       userId,
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 10,
-      status,
+      status
     );
 
     return {
@@ -97,7 +94,7 @@ export class OrderController {
   async checkout(
     @Req() req: RequestWithUser,
     @Body() dto: CheckoutDto,
-    @Query('sessionId') sessionId?: string,
+    @Query('sessionId') sessionId?: string
   ) {
     const userId = req.user?.id;
     if (!userId) {
@@ -122,7 +119,16 @@ export class OrderController {
    * Callback dari payment service setelah pembayaran sukses
    */
   @Post('payment-callback')
-  async paymentCallback(@Body() body: { orderId: string; paymentId: string; status: string; paidAt: string; amount?: number }) {
+  async paymentCallback(
+    @Body()
+    body: {
+      orderId: string;
+      paymentId: string;
+      status: string;
+      paidAt: string;
+      amount?: number;
+    }
+  ) {
     const { orderId, paymentId, status, paidAt, amount } = body;
 
     if (status === 'SUCCESS') {
@@ -174,7 +180,7 @@ export class OrderController {
   async cancelOrder(
     @Req() req: RequestWithUser,
     @Param('id') id: string,
-    @Body() dto: CancelOrderDto,
+    @Body() dto: CancelOrderDto
   ) {
     const userId = req.user?.id;
     if (!userId) {
@@ -190,6 +196,34 @@ export class OrderController {
     return {
       success: true,
       message: 'Order cancelled successfully',
+      data: null,
+    };
+  }
+
+  /**
+   * POST /api/v1/orders/:id/refund
+   * Request refund for delivered order (buyer only)
+   */
+  @Post(':id/refund')
+  async requestRefund(
+    @Req() req: RequestWithUser,
+    @Param('id') id: string,
+    @Body() dto: RequestRefundDto
+  ) {
+    const userId = req.user?.id;
+    if (!userId) {
+      return {
+        success: false,
+        message: 'User not authenticated',
+        error: { code: 'AUTH_001', details: null },
+      };
+    }
+
+    await this.orderService.requestRefund(id, userId, dto.reason, dto.amount, dto.evidenceUrls);
+
+    return {
+      success: true,
+      message: 'Refund request submitted successfully',
       data: null,
     };
   }
@@ -231,7 +265,7 @@ export class OrderController {
     @Req() req: RequestWithUser,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-    @Query('status') status?: OrderStatus,
+    @Query('status') status?: OrderStatus
   ) {
     const sellerId = req.user?.id;
     if (!sellerId) {
@@ -246,7 +280,7 @@ export class OrderController {
       sellerId,
       page ? parseInt(page) : 1,
       limit ? parseInt(limit) : 10,
-      status,
+      status
     );
 
     return {
@@ -260,6 +294,11 @@ export class OrderController {
   /**
    * PUT /api/v1/seller/orders/:subOrderId/status
    * Update sub-order status (seller only)
+   *
+   * Status yang bisa diupdate oleh seller:
+   * - PAID → READY_TO_SHIP (memicu event ORDER_PROCESSING)
+   * - READY_TO_SHIP → IN_TRANSIT (memicu event ORDER_SHIPPED)
+   * - IN_TRANSIT → DELIVERED (memicu event ORDER_DELIVERED)
    */
   @Put('seller/orders/:subOrderId/status')
   @Roles(UserRole.seller, UserRole.admin)
@@ -267,7 +306,7 @@ export class OrderController {
   async updateSubOrderStatus(
     @Req() req: RequestWithUser,
     @Param('subOrderId') subOrderId: string,
-    @Body() dto: UpdateOrderStatusDto,
+    @Body() dto: UpdateOrderStatusDto
   ) {
     const sellerId = req.user?.id;
     if (!sellerId) {
@@ -283,7 +322,7 @@ export class OrderController {
       sellerId,
       dto.status,
       dto.trackingNumber,
-      dto.courierName,
+      dto.courierName
     );
 
     return {

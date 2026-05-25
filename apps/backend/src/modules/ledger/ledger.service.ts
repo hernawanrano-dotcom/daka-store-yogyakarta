@@ -10,14 +10,10 @@ export class LedgerService {
   constructor(
     private prisma: PrismaService,
     private walletService: WalletService,
-    private journalService: JournalService,
+    private journalService: JournalService
   ) {}
 
-  // Escrow: dana ditahan saat payment success
   async createEscrow(orderId: string, amount: number): Promise<void> {
-    // 1. Debit dari customer wallet (atau langsung dari external)
-    // 2. Credit ke escrow account
-
     const transactionId = `escrow_${orderId}`;
 
     await this.journalService.createEntry({
@@ -34,17 +30,34 @@ export class LedgerService {
       credit: amount,
     });
 
+    // ✅ EVENT: ESCROW_CREATED via outbox
+    await this.prisma.outboxMessage.create({
+      data: {
+        event_name: 'ESCROW_CREATED',
+        aggregate_id: orderId,
+        payload: {
+          orderId: orderId,
+          amount: amount,
+          escrowedAt: new Date().toISOString(),
+        },
+        status: 'pending',
+      },
+    });
+
     this.logger.log(`Escrow created for order ${orderId}: ${amount}`);
   }
 
-  // Release escrow ke seller saat order completed
-  async releaseEscrow(orderId: string, sellerId: string, amount: number, fee: number): Promise<void> {
+  async releaseEscrow(
+    orderId: string,
+    sellerId: string,
+    amount: number,
+    fee: number
+  ): Promise<void> {
     const sellerWallet = await this.walletService.getWalletByUserId(sellerId);
     const netAmount = amount - fee;
 
     const transactionId = `release_${orderId}`;
 
-    // 1. Debit dari escrow
     await this.journalService.createEntry({
       transactionId,
       account: 'PLATFORM_ESCROW',
@@ -52,7 +65,6 @@ export class LedgerService {
       credit: 0,
     });
 
-    // 2. Credit ke seller wallet
     await this.journalService.createEntry({
       transactionId,
       account: 'SELLER_WALLET',
@@ -60,7 +72,6 @@ export class LedgerService {
       credit: netAmount,
     });
 
-    // 3. Debit fee dari seller (opsional, dicatat sebagai pendapatan platform)
     await this.journalService.createEntry({
       transactionId,
       account: 'SELLER_WALLET',
@@ -75,20 +86,19 @@ export class LedgerService {
       credit: fee,
     });
 
-    // Update wallet balance
     await this.walletService.updateBalance(sellerWallet.id, netAmount, 'CREDIT');
     await this.walletService.updateBalance(sellerWallet.id, fee, 'DEBIT');
 
-    // Simpan ke outbox
+    // ✅ EVENT: ESCROW_RELEASED via outbox
     await this.prisma.outboxMessage.create({
       data: {
         event_name: 'ESCROW_RELEASED',
         aggregate_id: orderId,
         payload: {
-          orderId,
-          sellerId,
+          orderId: orderId,
+          sellerId: sellerId,
           amount: netAmount,
-          fee,
+          fee: fee,
           releasedAt: new Date().toISOString(),
         },
         status: 'pending',
@@ -96,5 +106,79 @@ export class LedgerService {
     });
 
     this.logger.log(`Escrow released for order ${orderId}: net=${netAmount}, fee=${fee}`);
+  }
+
+  async creditWallet(
+    walletId: string,
+    userId: string,
+    amount: number,
+    referenceId: string,
+    referenceType: string
+  ) {
+    const newBalance = await this.walletService.updateBalance(
+      walletId,
+      amount,
+      'CREDIT',
+      referenceType,
+      referenceId,
+      `Credit from ${referenceType}`
+    );
+
+    // ✅ EVENT: WALLET_CREDITED via outbox
+    await this.prisma.outboxMessage.create({
+      data: {
+        event_name: 'WALLET_CREDITED',
+        aggregate_id: walletId,
+        payload: {
+          walletId: walletId,
+          userId: userId,
+          amount: amount,
+          balanceAfter: newBalance,
+          referenceId: referenceId,
+          referenceType: referenceType,
+          creditedAt: new Date().toISOString(),
+        },
+        status: 'pending',
+      },
+    });
+
+    return newBalance;
+  }
+
+  async debitWallet(
+    walletId: string,
+    userId: string,
+    amount: number,
+    referenceId: string,
+    referenceType: string
+  ) {
+    const newBalance = await this.walletService.updateBalance(
+      walletId,
+      amount,
+      'DEBIT',
+      referenceType,
+      referenceId,
+      `Debit from ${referenceType}`
+    );
+
+    // ✅ EVENT: WALLET_DEBITED via outbox
+    await this.prisma.outboxMessage.create({
+      data: {
+        event_name: 'WALLET_DEBITED',
+        aggregate_id: walletId,
+        payload: {
+          walletId: walletId,
+          userId: userId,
+          amount: amount,
+          balanceAfter: newBalance,
+          referenceId: referenceId,
+          referenceType: referenceType,
+          debitedAt: new Date().toISOString(),
+        },
+        status: 'pending',
+      },
+    });
+
+    return newBalance;
   }
 }

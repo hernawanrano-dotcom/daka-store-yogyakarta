@@ -95,16 +95,20 @@ describe('WalletService', () => {
     it('should throw error when insufficient balance for debit', async () => {
       (prisma.wallet.findUnique as jest.Mock).mockResolvedValue(mockWallet);
 
-      await expect(
-        service.updateBalance('wal_001', 600000, 'DEBIT'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.updateBalance('wal_001', 600000, 'DEBIT')).rejects.toThrow(
+        BadRequestException
+      );
     });
   });
 
   describe('createWalletForUser', () => {
     it('should create wallet for user', async () => {
       (prisma.wallet.findUnique as jest.Mock).mockResolvedValue(null);
-      (prisma.wallet.create as jest.Mock).mockResolvedValue({ id: 'wal_new', user_id: 'user_new', balance: 0 });
+      (prisma.wallet.create as jest.Mock).mockResolvedValue({
+        id: 'wal_new',
+        user_id: 'user_new',
+        balance: 0,
+      });
       (prisma.outboxMessage.create as jest.Mock).mockResolvedValue({});
 
       await service.createWalletForUser('user_new');

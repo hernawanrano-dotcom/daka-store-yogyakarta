@@ -19,11 +19,7 @@ import { MeilisearchModule } from '../../../../infrastructure/meilisearch/meilis
     ProductVariantController,
     ProductSearchController,
   ],
-  providers: [
-    ProductService,
-    ProductImageService,
-    ProductVariantService,
-  ],
+  providers: [ProductService, ProductImageService, ProductVariantService],
   exports: [ProductService, ProductImageService, ProductVariantService],
 })
 export class ProductModule {}

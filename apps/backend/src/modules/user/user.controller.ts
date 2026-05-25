@@ -1,8 +1,12 @@
-import { Controller, Get, Put, Post, Body, Req, Delete, Param } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, Req, Delete, Param, UseGuards } from '@nestjs/common';
 import { Request } from 'express';
 import { UserService } from './user.service';
 import { UpdateProfileDto, ChangePasswordDto, SwitchRoleDto } from './dto';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt.guard';
+import { RolesGuard } from '../../common/guards/roles.guard';
+import { Roles } from '../../common/decorators/roles.decorator';
+import { UserRole } from '@daka/shared-types';
 
 interface RequestWithUser extends Request {
   user: { sub: string; role: string; deviceId: string };
@@ -33,7 +37,10 @@ export class UserController {
   }
 
   @Post('change-password')
-  async changePassword(@CurrentUser() currentUser: { sub: string }, @Body() dto: ChangePasswordDto) {
+  async changePassword(
+    @CurrentUser() currentUser: { sub: string },
+    @Body() dto: ChangePasswordDto
+  ) {
     await this.userService.changePassword(currentUser.sub, dto);
     return {
       success: true,
@@ -45,7 +52,7 @@ export class UserController {
   @Post('switch-role')
   async switchRole(
     @CurrentUser() currentUser: { sub: string; deviceId: string },
-    @Body() dto: SwitchRoleDto,
+    @Body() dto: SwitchRoleDto
   ) {
     const result = await this.userService.switchRole(currentUser.sub, dto, currentUser.deviceId);
     return {
@@ -55,6 +62,29 @@ export class UserController {
         user: result.user,
         accessToken: result.accessToken,
       },
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('verify-email')
+  async verifyEmail(@CurrentUser() currentUser: { sub: string }) {
+    const user = await this.userService.verifyEmail(currentUser.sub);
+    return {
+      success: true,
+      message: 'Email verified successfully',
+      data: user,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @Post(':id/block')
+  async blockUser(@CurrentUser() currentUser: { sub: string }, @Param('id') id: string) {
+    const user = await this.userService.blockUser(currentUser.sub, id);
+    return {
+      success: true,
+      message: 'User blocked successfully',
+      data: user,
     };
   }
 
@@ -71,7 +101,7 @@ export class UserController {
   @Delete('devices/:deviceId')
   async revokeDevice(
     @CurrentUser() currentUser: { sub: string },
-    @Param('deviceId') deviceId: string,
+    @Param('deviceId') deviceId: string
   ) {
     await this.userService.revokeDevice(currentUser.sub, deviceId);
     return {
@@ -82,9 +112,7 @@ export class UserController {
   }
 
   @Delete('devices')
-  async revokeAllDevices(
-    @CurrentUser() currentUser: { sub: string; deviceId: string },
-  ) {
+  async revokeAllDevices(@CurrentUser() currentUser: { sub: string; deviceId: string }) {
     await this.userService.revokeAllDevices(currentUser.sub, currentUser.deviceId);
     return {
       success: true,

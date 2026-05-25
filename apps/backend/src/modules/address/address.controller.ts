@@ -41,7 +41,7 @@ export class AddressController {
   async update(
     @CurrentUser() currentUser: { sub: string },
     @Param('id') id: string,
-    @Body() dto: UpdateAddressDto,
+    @Body() dto: UpdateAddressDto
   ) {
     const address = await this.addressService.update(currentUser.sub, id, dto);
     return {

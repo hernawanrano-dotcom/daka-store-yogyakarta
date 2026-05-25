@@ -28,9 +28,7 @@ export class PaymentStateMachine {
     }
 
     if (!this.canTransition(payment.status, newStatus)) {
-      throw new BadRequestException(
-        `Invalid transition from ${payment.status} to ${newStatus}`,
-      );
+      throw new BadRequestException(`Invalid transition from ${payment.status} to ${newStatus}`);
     }
 
     // Update status

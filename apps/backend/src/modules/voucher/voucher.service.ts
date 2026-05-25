@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { VoucherType, VoucherDiscountType } from '@prisma/client';
 
@@ -126,10 +121,7 @@ export class VoucherService {
         isActive: true,
         startDate: { lte: now },
         endDate: { gte: now },
-        OR: [
-          { usageLimit: null },
-          { usedCount: { lt: this.prisma.voucher.fields.usageLimit } },
-        ],
+        OR: [{ usageLimit: null }, { usedCount: { lt: this.prisma.voucher.fields.usageLimit } }],
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -165,10 +157,7 @@ export class VoucherService {
       where: {
         userId,
         isUsed: false,
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: new Date() } },
-        ],
+        OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }],
       },
       include: {
         voucher: true,
@@ -232,10 +221,7 @@ export class VoucherService {
   /**
    * Apply voucher to checkout
    */
-  async applyVoucher(
-    userId: string,
-    dto: ApplyVoucherDto,
-  ): Promise<ApplyVoucherResponse> {
+  async applyVoucher(userId: string, dto: ApplyVoucherDto): Promise<ApplyVoucherResponse> {
     const voucher = await this.prisma.voucher.findUnique({
       where: { code: dto.voucherCode, isActive: true },
     });
@@ -255,7 +241,7 @@ export class VoucherService {
 
     if (dto.cartTotal < voucher.minSpend) {
       throw new BadRequestException(
-        `Minimum spend for this voucher is Rp ${voucher.minSpend.toLocaleString()}`,
+        `Minimum spend for this voucher is Rp ${voucher.minSpend.toLocaleString()}`
       );
     }
 
@@ -277,7 +263,7 @@ export class VoucherService {
     let discountAmount = 0;
 
     if (voucher.discountType === VoucherDiscountType.PERCENTAGE) {
-      discountAmount = Math.floor(dto.cartTotal * voucher.discountValue / 100);
+      discountAmount = Math.floor((dto.cartTotal * voucher.discountValue) / 100);
       if (voucher.maxDiscount && discountAmount > voucher.maxDiscount) {
         discountAmount = voucher.maxDiscount;
       }

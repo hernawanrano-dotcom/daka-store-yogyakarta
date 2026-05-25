@@ -1,9 +1,14 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@daka/shared-config';
+import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword, comparePassword } from '@daka/shared-utils';
 import { RegisterDto, LoginDto } from './dto';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '@daka/shared-types';
 import { EventBusService } from '../../common/event-bus/event-bus.service';
 import { randomBytes } from 'crypto';
 
@@ -12,7 +17,7 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private eventBus: EventBusService,
+    private eventBus: EventBusService
   ) {}
 
   async register(dto: RegisterDto) {
@@ -203,7 +208,7 @@ export class AuthService {
     const { accessToken, refreshToken: newRefreshToken } = await this.generateTokens(
       validSession.user_id,
       validSession.user.role,
-      deviceId,
+      deviceId
     );
 
     // Save new refresh token
@@ -260,13 +265,18 @@ export class AuthService {
       {
         secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: '7d',
-      },
+      }
     );
 
     return { accessToken, refreshToken };
   }
 
-  private async logLoginAttempt(userIdOrEmail: string, ipAddress: string, userAgent: string, success: boolean) {
+  private async logLoginAttempt(
+    userIdOrEmail: string,
+    ipAddress: string,
+    userAgent: string,
+    success: boolean
+  ) {
     let userId: string | null = null;
 
     if (success || userIdOrEmail.includes('@')) {

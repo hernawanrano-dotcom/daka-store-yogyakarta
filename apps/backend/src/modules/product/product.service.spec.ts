@@ -79,7 +79,13 @@ describe('ProductService', () => {
       mockPrismaService.product.findUnique.mockResolvedValue({ id: 'existing' });
 
       await expect(
-        service.create('seller_001', { name: 'Test', slug: 'test', price: 1000, stock: 1, weightGram: 100 }),
+        service.create('seller_001', {
+          name: 'Test',
+          slug: 'test',
+          price: 1000,
+          stock: 1,
+          weightGram: 100,
+        })
       ).rejects.toThrow(ConflictException);
     });
   });
@@ -134,9 +140,9 @@ describe('ProductService', () => {
       const product = { id: 'prod_001', sellerId: 'other_seller' };
       mockPrismaService.product.findFirst.mockResolvedValue(product);
 
-      await expect(
-        service.update('seller_001', 'prod_001', { price: 60000 }),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(service.update('seller_001', 'prod_001', { price: 60000 })).rejects.toThrow(
+        ForbiddenException
+      );
     });
   });
 

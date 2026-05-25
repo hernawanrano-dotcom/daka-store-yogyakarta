@@ -38,7 +38,7 @@ export class ProductVariantController {
   async findOne(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Param('variantId') variantId: string,
+    @Param('variantId') variantId: string
   ) {
     const data = await this.variantService.findOne(sellerId, productId, variantId);
     return {
@@ -52,7 +52,7 @@ export class ProductVariantController {
   async create(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Body() dto: CreateVariantDto,
+    @Body() dto: CreateVariantDto
   ) {
     const data = await this.variantService.create(sellerId, productId, dto);
     return {
@@ -66,7 +66,7 @@ export class ProductVariantController {
   async bulkCreate(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Body() variants: CreateVariantDto[],
+    @Body() variants: CreateVariantDto[]
   ) {
     const data = await this.variantService.bulkCreate(sellerId, productId, variants);
     return {
@@ -81,7 +81,7 @@ export class ProductVariantController {
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
     @Param('variantId') variantId: string,
-    @Body() dto: UpdateVariantDto,
+    @Body() dto: UpdateVariantDto
   ) {
     const data = await this.variantService.update(sellerId, productId, variantId, dto);
     return {
@@ -96,7 +96,7 @@ export class ProductVariantController {
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
     @Param('variantId') variantId: string,
-    @Body('stock') stock: number,
+    @Body('stock') stock: number
   ) {
     const data = await this.variantService.updateStock(sellerId, productId, variantId, stock);
     return {
@@ -111,7 +111,7 @@ export class ProductVariantController {
   async delete(
     @CurrentUser('id') sellerId: string,
     @Param('productId') productId: string,
-    @Param('variantId') variantId: string,
+    @Param('variantId') variantId: string
   ) {
     await this.variantService.delete(sellerId, productId, variantId);
     return {

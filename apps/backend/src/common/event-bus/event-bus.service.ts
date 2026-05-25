@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { PrismaService } from '@daka/shared-config';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class EventBusService implements OnModuleInit {
@@ -9,7 +9,7 @@ export class EventBusService implements OnModuleInit {
 
   constructor(
     @InjectQueue('outbox') private outboxQueue: Queue,
-    private prisma: PrismaService,
+    private prisma: PrismaService
   ) {}
 
   async onModuleInit() {
@@ -30,7 +30,7 @@ export class EventBusService implements OnModuleInit {
           retry_count: 0,
         },
       });
-      
+
       this.logger.debug(`Event ${eventName} saved to outbox`);
     } catch (error) {
       this.logger.error(`Failed to save event ${eventName} to outbox: ${error.message}`);
@@ -47,7 +47,7 @@ export class EventBusService implements OnModuleInit {
       eventName,
       payload,
     });
-    
+
     this.logger.debug(`Event ${eventName} queued for publishing`);
   }
 }

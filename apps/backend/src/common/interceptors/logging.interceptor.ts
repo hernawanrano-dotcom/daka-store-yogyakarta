@@ -25,10 +25,10 @@ export class LoggingInterceptor implements NestInterceptor {
           const duration = Date.now() - startTime;
           this.logger.error(
             `[${requestId}] ${method} ${url} - ${duration}ms - Error: ${error.message}`,
-            error.stack,
+            error.stack
           );
         },
-      }),
+      })
     );
   }
 }

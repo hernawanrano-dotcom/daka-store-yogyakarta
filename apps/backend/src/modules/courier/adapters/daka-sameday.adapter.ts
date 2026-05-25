@@ -42,7 +42,7 @@ export class DakaSamedayAdapter implements CourierAdapter {
       (error) => {
         this.logger.error(`Daka Sameday API Error: ${error.message}`, error.response?.data);
         throw error;
-      },
+      }
     );
   }
 
@@ -70,11 +70,14 @@ export class DakaSamedayAdapter implements CourierAdapter {
         origin: { lat: params.originLat, lng: params.originLng },
         destination: { lat: params.destLat, lng: params.destLng },
         weight: params.weightGram,
-        dimensions: params.lengthCm && params.widthCm && params.heightCm ? {
-          length: params.lengthCm,
-          width: params.widthCm,
-          height: params.heightCm,
-        } : undefined,
+        dimensions:
+          params.lengthCm && params.widthCm && params.heightCm
+            ? {
+                length: params.lengthCm,
+                width: params.widthCm,
+                height: params.heightCm,
+              }
+            : undefined,
       });
 
       return this.mapRatesResponse(response.data);
@@ -110,7 +113,7 @@ export class DakaSamedayAdapter implements CourierAdapter {
           lat: params.toAddress.lat,
           lng: params.toAddress.lng,
         },
-        items: params.items.map(item => ({
+        items: params.items.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           weight: item.weightGram,
@@ -195,7 +198,9 @@ export class DakaSamedayAdapter implements CourierAdapter {
     return true;
   }
 
-  private mapStatus(status: string): 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned' {
+  private mapStatus(
+    status: string
+  ): 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned' {
     const map: Record<string, any> = {
       CREATED: 'pending',
       PICKED_UP: 'picked_up',
@@ -229,9 +234,10 @@ export class DakaSamedayAdapter implements CourierAdapter {
       params.originLat || -7.7956,
       params.originLng || 110.3695,
       params.destLat || -7.7956,
-      params.destLng || 110.3695,
+      params.destLng || 110.3695
     );
-    const basePrice = 15000 + Math.floor(distance * 3000) + Math.floor((params.weightGram || 1000) / 1000) * 3000;
+    const basePrice =
+      15000 + Math.floor(distance * 3000) + Math.floor((params.weightGram || 1000) / 1000) * 3000;
 
     return [
       {
@@ -304,7 +310,10 @@ export class DakaSamedayAdapter implements CourierAdapter {
     const dLng = this.toRad(lng2 - lng1);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      Math.cos(this.toRad(lat1)) *
+        Math.cos(this.toRad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }

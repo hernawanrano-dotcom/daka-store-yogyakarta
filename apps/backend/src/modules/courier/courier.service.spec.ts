@@ -83,7 +83,9 @@ describe('CourierService', () => {
 
     it('should return rates from specific courier when courierName provided', async () => {
       const mockAdapter = {
-        getRates: jest.fn().mockResolvedValue([{ courierName: 'JNT', service: 'Reguler', price: 15000 }]),
+        getRates: jest
+          .fn()
+          .mockResolvedValue([{ courierName: 'JNT', service: 'Reguler', price: 15000 }]),
       };
       mockRegistry.getAdapter.mockReturnValue(mockAdapter);
 
@@ -178,7 +180,9 @@ describe('CourierService', () => {
       };
       mockRegistry.getAdapter.mockReturnValue(mockAdapter);
 
-      await expect(service.createShipment(mockOrderParams)).rejects.toThrow('Failed to create shipment');
+      await expect(service.createShipment(mockOrderParams)).rejects.toThrow(
+        'Failed to create shipment'
+      );
 
       expect(mockPrismaService.courierLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -193,7 +197,9 @@ describe('CourierService', () => {
     it('should throw NotFoundException when shipment not found', async () => {
       mockPrismaService.shipment.findFirst.mockResolvedValue(null);
 
-      await expect(service.trackShipment('invalid')).rejects.toThrow('Shipment with tracking number invalid not found');
+      await expect(service.trackShipment('invalid')).rejects.toThrow(
+        'Shipment with tracking number invalid not found'
+      );
     });
 
     it('should return tracking status for valid shipment', async () => {

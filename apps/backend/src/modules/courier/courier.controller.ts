@@ -9,7 +9,7 @@ import { RateParams, OrderParams } from './interfaces/courier.adapter.interface'
 export class CourierController {
   constructor(
     private readonly courierService: CourierService,
-    private readonly registry: CourierRegistry,
+    private readonly registry: CourierRegistry
   ) {}
 
   /**
@@ -30,7 +30,7 @@ export class CourierController {
     @Query('destLng') destLng: string,
     @Query('weightGram') weightGram: string,
     @Query('itemType') itemType: 'document' | 'package',
-    @Query('courierName') courierName?: string,
+    @Query('courierName') courierName?: string
   ) {
     const params: RateParams = {
       originLat: parseFloat(originLat),
@@ -76,7 +76,7 @@ export class CourierController {
     return {
       success: true,
       message: 'Available couriers retrieved',
-      data: couriers.map(name => ({
+      data: couriers.map((name) => ({
         name,
         supportsWebhook: this.registry.supportsWebhook(name),
         supportsPolling: this.registry.supportsPolling(name),

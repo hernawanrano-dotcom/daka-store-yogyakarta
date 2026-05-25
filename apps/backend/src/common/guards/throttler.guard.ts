@@ -13,23 +13,23 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
 
   protected getTTL(context: ExecutionContext): number {
     const req = context.switchToHttp().getRequest();
-    
+
     // Higher limit for sellers
     if (req.user && req.user.role === 'seller') {
       return 60;
     }
-    
+
     return 60;
   }
 
   protected getLimit(context: ExecutionContext): number {
     const req = context.switchToHttp().getRequest();
-    
+
     // Higher limit for sellers (1000 per minute)
     if (req.user && req.user.role === 'seller') {
       return 1000;
     }
-    
+
     // Default for buyers (100 per minute)
     return 100;
   }

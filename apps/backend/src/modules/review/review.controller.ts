@@ -12,12 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { ReviewService } from './review.service';
-import {
-  CreateReviewDto,
-  UpdateReviewDto,
-  ReplyReviewDto,
-  ReviewQueryDto,
-} from './dto/review.dto';
+import { CreateReviewDto, UpdateReviewDto, ReplyReviewDto, ReviewQueryDto } from './dto/review.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -31,10 +26,7 @@ export class ReviewController {
   // ==================== Customer Endpoints ====================
 
   @Get('product/:productId')
-  async getProductReviews(
-    @Param('productId') productId: string,
-    @Query() query: ReviewQueryDto,
-  ) {
+  async getProductReviews(@Param('productId') productId: string, @Query() query: ReviewQueryDto) {
     const result = await this.reviewService.getProductReviews(productId, query);
     return {
       success: true,
@@ -58,12 +50,12 @@ export class ReviewController {
   async getUserReviews(
     @CurrentUser('id') userId: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     const result = await this.reviewService.getUserReviews(
       userId,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 10,
+      limit ? parseInt(limit) : 10
     );
     return {
       success: true,
@@ -75,10 +67,7 @@ export class ReviewController {
   @Post()
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  async createReview(
-    @CurrentUser('id') userId: string,
-    @Body() dto: CreateReviewDto,
-  ) {
+  async createReview(@CurrentUser('id') userId: string, @Body() dto: CreateReviewDto) {
     const data = await this.reviewService.create(userId, dto);
     return {
       success: true,
@@ -92,7 +81,7 @@ export class ReviewController {
   async updateReview(
     @CurrentUser('id') userId: string,
     @Param('reviewId') reviewId: string,
-    @Body() dto: UpdateReviewDto,
+    @Body() dto: UpdateReviewDto
   ) {
     const data = await this.reviewService.update(userId, reviewId, dto);
     return {
@@ -105,10 +94,7 @@ export class ReviewController {
   @Delete(':reviewId')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async deleteReview(
-    @CurrentUser('id') userId: string,
-    @Param('reviewId') reviewId: string,
-  ) {
+  async deleteReview(@CurrentUser('id') userId: string, @Param('reviewId') reviewId: string) {
     await this.reviewService.delete(userId, reviewId);
     return {
       success: true,
@@ -125,7 +111,7 @@ export class ReviewController {
   async replyToReview(
     @CurrentUser('id') sellerId: string,
     @Param('reviewId') reviewId: string,
-    @Body() dto: ReplyReviewDto,
+    @Body() dto: ReplyReviewDto
   ) {
     const data = await this.reviewService.replyToReview(sellerId, reviewId, dto);
     return {
@@ -143,7 +129,7 @@ export class ReviewController {
   async addReviewImages(
     @CurrentUser('id') userId: string,
     @Param('reviewId') reviewId: string,
-    @Body('images') images: string[],
+    @Body('images') images: string[]
   ) {
     const data = await this.reviewService.addReviewImages(userId, reviewId, images);
     return {
@@ -159,7 +145,7 @@ export class ReviewController {
   async deleteReviewImage(
     @CurrentUser('id') userId: string,
     @Param('reviewId') reviewId: string,
-    @Param('imageId') imageId: string,
+    @Param('imageId') imageId: string
   ) {
     await this.reviewService.deleteReviewImage(userId, reviewId, imageId);
     return {

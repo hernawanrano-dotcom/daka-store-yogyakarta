@@ -1,14 +1,10 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RedisService } from '../../redis/redis.service';
 import { CartService } from '../cart/cart.service';
 import { OrderStatus, Prisma } from '@prisma/client';
+import { ProductEvents } from '@daka/shared-events'; // ✅ DIPERBAIKI: dari shared-types ke shared-events
 
 export interface CheckoutDto {
   addressId: string;
@@ -78,30 +74,26 @@ export class OrderService {
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
-    private cartService: CartService,
+    private cartService: CartService
   ) {}
 
   /**
    * Checkout: konversi cart ke MasterOrder + SubOrders
    */
-  async checkout(
-    userId: string,
-    dto: CheckoutDto,
-    sessionId?: string,
-  ): Promise<any> {
+  async checkout(userId: string, dto: CheckoutDto, sessionId?: string): Promise<any> {
     // 1. Get cart items
     const cartItems = await this.cartService.getCartItemsForCheckout(userId, sessionId);
-    
+
     if (cartItems.length === 0) {
       throw new BadRequestException('Cart is empty');
     }
 
     // 2. Group items by seller
     const itemsBySeller = await this.groupItemsBySeller(cartItems);
-    
+
     // 3. Validate stock
     await this.validateStock(itemsBySeller);
-    
+
     // 4. Validate voucher
     let discountAmount = 0;
     if (dto.voucherCode) {
@@ -117,7 +109,7 @@ export class OrderService {
       const subTotal = items.reduce((sum, i) => sum + i.totalPrice, 0);
       const subShippingFee = this.calculateShippingFee(items, dto);
       const subGrandTotal = subTotal + subShippingFee;
-      
+
       subOrdersData.push({
         sellerId,
         items,
@@ -125,7 +117,7 @@ export class OrderService {
         shippingFee: subShippingFee,
         grandTotal: subGrandTotal,
       });
-      
+
       totalAmount += subTotal;
       totalShippingFee += subShippingFee;
     }
@@ -138,7 +130,7 @@ export class OrderService {
       const address = await tx.address.findUnique({
         where: { id: dto.addressId, userId },
       });
-      
+
       if (!address) {
         throw new BadRequestException('Address not found');
       }
@@ -214,7 +206,7 @@ export class OrderService {
       dto.paymentMethod,
       userId,
       buyer?.email || '',
-      buyer?.fullName || '',
+      buyer?.fullName || ''
     );
 
     return {
@@ -234,11 +226,11 @@ export class OrderService {
     paymentMethod: string,
     buyerId: string,
     buyerEmail: string,
-    buyerName: string,
+    buyerName: string
   ): Promise<string> {
     try {
       const paymentServiceUrl = process.env.PAYMENT_SERVICE_URL || 'http://localhost:3000';
-      
+
       const response = await fetch(`${paymentServiceUrl}/api/v1/payments`, {
         method: 'POST',
         headers: {
@@ -274,7 +266,7 @@ export class OrderService {
     userId: string,
     page: number = 1,
     limit: number = 10,
-    status?: OrderStatus,
+    status?: OrderStatus
   ): Promise<any> {
     const where: any = { buyerId: userId };
     if (status) {
@@ -419,7 +411,7 @@ export class OrderService {
     sellerId: string,
     status: OrderStatus,
     trackingNumber?: string,
-    courierName?: string,
+    courierName?: string
   ): Promise<void> {
     const subOrder = await this.prisma.subOrder.findUnique({
       where: { id: subOrderId },
@@ -452,12 +444,15 @@ export class OrderService {
 
     const allowed = validTransitions[subOrder.status]?.includes(status);
     if (!allowed && subOrder.status !== status) {
-      throw new BadRequestException(
-        `Invalid transition from ${subOrder.status} to ${status}`,
-      );
+      throw new BadRequestException(`Invalid transition from ${subOrder.status} to ${status}`);
     }
 
     const updateData: any = { status };
+
+    // ✅ EVENT: ORDER_PROCESSING - saat seller klik "Proses" (status READY_TO_SHIP)
+    if (status === OrderStatus.READY_TO_SHIP) {
+      await this.publishOrderProcessingEvent(subOrder.masterOrderId, sellerId);
+    }
 
     if (status === OrderStatus.IN_TRANSIT && trackingNumber) {
       updateData.trackingNumber = trackingNumber;
@@ -526,12 +521,74 @@ export class OrderService {
   }
 
   /**
+   * Request refund
+   */
+  async requestRefund(
+    subOrderId: string,
+    buyerId: string,
+    reason: string,
+    amount: number,
+    evidenceUrls?: string[]
+  ): Promise<void> {
+    const subOrder = await this.prisma.subOrder.findUnique({
+      where: { id: subOrderId },
+      include: { masterOrder: true },
+    });
+
+    if (!subOrder) {
+      throw new NotFoundException('Sub-order not found');
+    }
+
+    if (subOrder.masterOrder.buyerId !== buyerId) {
+      throw new BadRequestException('You are not the owner of this order');
+    }
+
+    if (subOrder.status !== OrderStatus.DELIVERED) {
+      throw new BadRequestException('Refund can only be requested for delivered orders');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.subOrder.update({
+        where: { id: subOrderId },
+        data: {
+          status: OrderStatus.REFUND_REQUESTED,
+        },
+      });
+
+      // ✅ EVENT: ORDER_REFUND_REQUESTED
+      await this.publishOrderRefundRequestedEvent(
+        subOrder.masterOrderId,
+        subOrderId,
+        buyerId,
+        reason,
+        amount
+      );
+
+      // Create dispute record
+      await tx.dispute.create({
+        data: {
+          subOrderId,
+          buyerId,
+          sellerId: subOrder.sellerId,
+          reason: reason as any,
+          description: reason,
+          evidenceUrls: evidenceUrls || [],
+          proposedAmount: amount,
+          status: 'OPEN',
+        },
+      });
+    });
+
+    this.logger.log(`Refund requested for sub-order ${subOrderId} by buyer ${buyerId}`);
+  }
+
+  /**
    * Cron job: Auto complete orders 7 days after delivery
    */
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async autoCompleteOrdersCron() {
     this.logger.log('Running auto-complete orders cron job');
-    
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -627,7 +684,7 @@ export class OrderService {
     sellerId: string,
     page: number = 1,
     limit: number = 10,
-    status?: OrderStatus,
+    status?: OrderStatus
   ): Promise<any> {
     const where: any = { sellerId };
     if (status) {
@@ -741,7 +798,7 @@ export class OrderService {
 
         if (item.quantity > availableStock) {
           throw new BadRequestException(
-            `Insufficient stock for ${item.productName}. Available: ${availableStock}`,
+            `Insufficient stock for ${item.productName}. Available: ${availableStock}`
           );
         }
       }
@@ -769,7 +826,7 @@ export class OrderService {
 
     let discount = 0;
     if (voucher.discountType === 'PERCENTAGE') {
-      discount = Math.floor(totalAmount * voucher.discountValue / 100);
+      discount = Math.floor((totalAmount * voucher.discountValue) / 100);
       if (voucher.maxDiscount && discount > voucher.maxDiscount) {
         discount = voucher.maxDiscount;
       }
@@ -786,7 +843,7 @@ export class OrderService {
 
   private calculatePlatformFee(amount: number): number {
     const feePercentage = 3;
-    let fee = Math.floor(amount * feePercentage / 100);
+    let fee = Math.floor((amount * feePercentage) / 100);
     const minFee = 1000;
     const maxFee = 50000;
     if (fee < minFee) fee = minFee;
@@ -794,7 +851,11 @@ export class OrderService {
     return fee;
   }
 
-  private async holdStock(tx: Prisma.TransactionClient, orderId: string, itemsBySeller: Map<string, any[]>): Promise<void> {
+  private async holdStock(
+    tx: Prisma.TransactionClient,
+    orderId: string,
+    itemsBySeller: Map<string, any[]>
+  ): Promise<void> {
     for (const [_, items] of itemsBySeller) {
       for (const item of items) {
         if (item.variantId) {
@@ -883,7 +944,11 @@ export class OrderService {
     this.logger.log(`ORDER_CREATED event queued for order ${orderId}`);
   }
 
-  private async publishOrderPaidEvent(orderId: string, paymentId: string, paymentData: any): Promise<void> {
+  private async publishOrderPaidEvent(
+    orderId: string,
+    paymentId: string,
+    paymentData: any
+  ): Promise<void> {
     await this.prisma.outboxMessage.create({
       data: {
         eventName: 'ORDER_PAID',
@@ -900,7 +965,28 @@ export class OrderService {
     this.logger.log(`ORDER_PAID event queued for order ${orderId}`);
   }
 
-  private async publishOrderShippedEvent(orderId: string, trackingNumber: string, courierName?: string): Promise<void> {
+  // ✅ EVENT BARU: ORDER_PROCESSING
+  private async publishOrderProcessingEvent(orderId: string, sellerId: string): Promise<void> {
+    await this.prisma.outboxMessage.create({
+      data: {
+        eventName: 'ORDER_PROCESSING',
+        aggregateId: orderId,
+        payload: {
+          orderId,
+          sellerId,
+          processedAt: new Date().toISOString(),
+        },
+        status: 'pending',
+      },
+    });
+    this.logger.log(`ORDER_PROCESSING event queued for order ${orderId}`);
+  }
+
+  private async publishOrderShippedEvent(
+    orderId: string,
+    trackingNumber: string,
+    courierName?: string
+  ): Promise<void> {
     await this.prisma.outboxMessage.create({
       data: {
         eventName: 'ORDER_SHIPPED',
@@ -946,6 +1032,32 @@ export class OrderService {
       },
     });
     this.logger.log(`ORDER_CANCELLED event queued for order ${orderId}`);
+  }
+
+  // ✅ EVENT BARU: ORDER_REFUND_REQUESTED
+  private async publishOrderRefundRequestedEvent(
+    orderId: string,
+    subOrderId: string,
+    buyerId: string,
+    reason: string,
+    amount: number
+  ): Promise<void> {
+    await this.prisma.outboxMessage.create({
+      data: {
+        eventName: 'ORDER_REFUND_REQUESTED',
+        aggregateId: orderId,
+        payload: {
+          orderId,
+          subOrderId,
+          buyerId,
+          reason,
+          amount,
+          requestedAt: new Date().toISOString(),
+        },
+        status: 'pending',
+      },
+    });
+    this.logger.log(`ORDER_REFUND_REQUESTED event queued for order ${orderId}`);
   }
 
   private formatOrderDetail(order: any): OrderDetail {

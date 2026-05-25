@@ -15,13 +15,9 @@ export class NotificationController {
   async getUserNotifications(
     @Req() req: RequestWithUser,
     @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query('limit') limit = 10
   ) {
-    const result = await this.notificationService.getUserNotifications(
-      req.user.id,
-      +page,
-      +limit,
-    );
+    const result = await this.notificationService.getUserNotifications(req.user.id, +page, +limit);
     return {
       success: true,
       message: 'Notifications retrieved successfully',

@@ -38,7 +38,7 @@ export class CartController {
   @Get()
   async getCart(@Req() req: RequestWithUser, @Query('sessionId') sessionId?: string) {
     let cart;
-    
+
     if (req.user?.id) {
       cart = await this.cartService.getUserCart(req.user.id);
     } else if (sessionId) {
@@ -61,7 +61,7 @@ export class CartController {
   async addToCart(
     @Req() req: RequestWithUser,
     @Query('sessionId') sessionId: string,
-    @Body() dto: AddToCartDto,
+    @Body() dto: AddToCartDto
   ) {
     if (dto.quantity <= 0) {
       return {
@@ -72,20 +72,20 @@ export class CartController {
     }
 
     let cart;
-    
+
     if (req.user?.id) {
       cart = await this.cartService.addToUserCart(
         req.user.id,
         dto.productId,
         dto.quantity,
-        dto.variantId,
+        dto.variantId
       );
     } else if (sessionId) {
       cart = await this.cartService.addToGuestCart(
         sessionId,
         dto.productId,
         dto.quantity,
-        dto.variantId,
+        dto.variantId
       );
     } else {
       return {
@@ -110,16 +110,12 @@ export class CartController {
     @Req() req: RequestWithUser,
     @Param('itemId') itemId: string,
     @Query('sessionId') sessionId: string,
-    @Body() dto: UpdateCartItemDto,
+    @Body() dto: UpdateCartItemDto
   ) {
     let cart;
-    
+
     if (req.user?.id) {
-      cart = await this.cartService.updateUserCartItem(
-        req.user.id,
-        itemId,
-        dto.quantity,
-      );
+      cart = await this.cartService.updateUserCartItem(req.user.id, itemId, dto.quantity);
     } else if (sessionId) {
       // Untuk guest cart, itemId adalah kombinasi productId:variantId
       const [productId, variantId] = itemId.split(':');
@@ -127,7 +123,7 @@ export class CartController {
         sessionId,
         productId,
         dto.quantity,
-        variantId || undefined,
+        variantId || undefined
       );
     } else {
       return {
@@ -151,10 +147,10 @@ export class CartController {
   async removeCartItem(
     @Req() req: RequestWithUser,
     @Param('itemId') itemId: string,
-    @Query('sessionId') sessionId: string,
+    @Query('sessionId') sessionId: string
   ) {
     let cart;
-    
+
     if (req.user?.id) {
       cart = await this.cartService.removeUserCartItem(req.user.id, itemId);
     } else if (sessionId) {
@@ -162,7 +158,7 @@ export class CartController {
       cart = await this.cartService.removeGuestCartItem(
         sessionId,
         productId,
-        variantId || undefined,
+        variantId || undefined
       );
     } else {
       return {
@@ -185,7 +181,7 @@ export class CartController {
   @Delete()
   async clearCart(@Req() req: RequestWithUser, @Query('sessionId') sessionId: string) {
     let cart;
-    
+
     if (req.user?.id) {
       cart = await this.cartService.clearUserCart(req.user.id);
     } else if (sessionId) {

@@ -16,7 +16,8 @@ import { DisputeService } from './dispute.service';
 import { JwtAuthGuard } from '../../common/guards/jwt.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { UserRole, DisputeReason } from '@prisma/client';
+import { DisputeReason } from '@prisma/client';
+import { UserRole } from '@daka/shared-types';
 
 interface RequestWithUser extends Request {
   user: { id: string; email: string; role: string };
@@ -44,13 +45,11 @@ export class DisputeController {
   constructor(private disputeService: DisputeService) {}
 
   @Post()
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'evidence', maxCount: 10 }]),
-  )
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'evidence', maxCount: 10 }]))
   async createDispute(
     @Req() req: RequestWithUser,
     @Body() body: CreateDisputeBody,
-    @UploadedFiles() files: { evidence?: Express.Multer.File[] },
+    @UploadedFiles() files: { evidence?: Express.Multer.File[] }
   ) {
     // Get order details to get sellerId
     const subOrder = await this.prisma?.subOrder.findUnique({
@@ -80,13 +79,13 @@ export class DisputeController {
     @Req() req: RequestWithUser,
     @Query('role') role: 'buyer' | 'seller',
     @Query('page') page = 1,
-    @Query('limit') limit = 10,
+    @Query('limit') limit = 10
   ) {
     const disputes = await this.disputeService.getUserDisputes(
       req.user.id,
       role || 'buyer',
       +page,
-      +limit,
+      +limit
     );
     return {
       success: true,
@@ -97,15 +96,8 @@ export class DisputeController {
   }
 
   @Get(':id')
-  async getDispute(
-    @Req() req: RequestWithUser,
-    @Param('id') id: string,
-  ) {
-    const dispute = await this.disputeService.getDispute(
-      id,
-      req.user.id,
-      req.user.role,
-    );
+  async getDispute(@Req() req: RequestWithUser, @Param('id') id: string) {
+    const dispute = await this.disputeService.getDispute(id, req.user.id, req.user.role);
     return {
       success: true,
       message: 'Dispute retrieved successfully',
@@ -114,14 +106,12 @@ export class DisputeController {
   }
 
   @Post(':id/messages')
-  @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'images', maxCount: 5 }]),
-  )
+  @UseInterceptors(FileFieldsInterceptor([{ name: 'images', maxCount: 5 }]))
   async addMessage(
     @Req() req: RequestWithUser,
     @Param('id') id: string,
     @Body() body: AddMessageBody,
-    @UploadedFiles() files: { images?: Express.Multer.File[] },
+    @UploadedFiles() files: { images?: Express.Multer.File[] }
   ) {
     const message = await this.disputeService.addMessage({
       disputeId: id,
@@ -142,7 +132,7 @@ export class DisputeController {
   async resolveDispute(
     @Req() req: RequestWithUser,
     @Param('id') id: string,
-    @Body() body: ResolveDisputeBody,
+    @Body() body: ResolveDisputeBody
   ) {
     const dispute = await this.disputeService.resolveDispute({
       disputeId: id,
@@ -160,10 +150,7 @@ export class DisputeController {
   @Get('admin/pending')
   @Roles(UserRole.admin)
   @UseGuards(RolesGuard)
-  async getPendingDisputes(
-    @Query('page') page = 1,
-    @Query('limit') limit = 10,
-  ) {
+  async getPendingDisputes(@Query('page') page = 1, @Query('limit') limit = 10) {
     const disputes = await this.disputeService.getPendingDisputes(+page, +limit);
     return {
       success: true,

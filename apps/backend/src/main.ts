@@ -22,7 +22,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    }),
+    })
   );
 
   // Middleware
@@ -32,7 +32,10 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // CORS
-  const corsOrigins = configService.get('CORS_ORIGIN', 'http://localhost:3001,http://localhost:3002,http://localhost:3003');
+  const corsOrigins = configService.get(
+    'CORS_ORIGIN',
+    'http://localhost:3001,http://localhost:3002,http://localhost:3003'
+  );
   app.enableCors({
     origin: corsOrigins.split(','),
     credentials: true,
@@ -42,8 +45,8 @@ async function bootstrap() {
 
   // Request ID middleware
   app.use((req, res, next) => {
-    const requestId = req.headers['x-request-id'] || 
-      `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+    const requestId =
+      req.headers['x-request-id'] || `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
     req.headers['x-request-id'] = requestId;
     res.setHeader('X-Request-ID', requestId);
     next();

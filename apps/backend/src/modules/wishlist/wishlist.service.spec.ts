@@ -23,10 +23,7 @@ describe('WishlistService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        WishlistService,
-        { provide: PrismaService, useValue: mockPrismaService },
-      ],
+      providers: [WishlistService, { provide: PrismaService, useValue: mockPrismaService }],
     }).compile();
 
     service = module.get<WishlistService>(WishlistService);
@@ -56,9 +53,7 @@ describe('WishlistService', () => {
     it('should throw NotFoundException if product not found', async () => {
       mockPrismaService.product.findFirst.mockResolvedValue(null);
 
-      await expect(service.addToWishlist('user_001', 'invalid')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.addToWishlist('user_001', 'invalid')).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ConflictException if already in wishlist', async () => {
@@ -70,9 +65,7 @@ describe('WishlistService', () => {
       mockPrismaService.product.findFirst.mockResolvedValue(product);
       mockPrismaService.wishlist.findUnique.mockResolvedValue(existingWishlist);
 
-      await expect(service.addToWishlist(userId, productId)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.addToWishlist(userId, productId)).rejects.toThrow(ConflictException);
     });
   });
 
@@ -82,17 +75,15 @@ describe('WishlistService', () => {
       mockPrismaService.wishlist.findUnique.mockResolvedValue(wishlistItem);
       mockPrismaService.wishlist.delete.mockResolvedValue(wishlistItem);
 
-      await expect(
-        service.removeFromWishlist('user_001', 'prod_001'),
-      ).resolves.not.toThrow();
+      await expect(service.removeFromWishlist('user_001', 'prod_001')).resolves.not.toThrow();
     });
 
     it('should throw NotFoundException if not in wishlist', async () => {
       mockPrismaService.wishlist.findUnique.mockResolvedValue(null);
 
-      await expect(
-        service.removeFromWishlist('user_001', 'prod_001'),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.removeFromWishlist('user_001', 'prod_001')).rejects.toThrow(
+        NotFoundException
+      );
     });
   });
 

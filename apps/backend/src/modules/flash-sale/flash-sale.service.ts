@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException } from '@nes
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RedisService } from '../../infrastructure/redis/redis.service';
+import { RedisService } from '../../redis/redis.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export interface CreateFlashSaleDTO {
@@ -40,7 +40,7 @@ export class FlashSaleService {
     private redisService: RedisService,
     private eventEmitter: EventEmitter2,
     @InjectQueue('flash-sale.start') private startQueue: Queue,
-    @InjectQueue('flash-sale.end') private endQueue: Queue,
+    @InjectQueue('flash-sale.end') private endQueue: Queue
   ) {}
 
   async createFlashSale(data: CreateFlashSaleDTO) {
@@ -53,7 +53,7 @@ export class FlashSaleService {
         endTime: data.endTime,
         isActive: false,
         items: {
-          create: data.items.map(item => ({
+          create: data.items.map((item) => ({
             productId: item.productId,
             variantId: item.variantId,
             flashPrice: item.flashPrice,
@@ -75,7 +75,7 @@ export class FlashSaleService {
       await this.startQueue.add(
         `start-${flashSale.id}`,
         { flashSaleId: flashSale.id },
-        { delay: startDelay },
+        { delay: startDelay }
       );
     } else if (startDelay <= 0 && endDelay > 0) {
       // Already started, activate immediately
@@ -86,7 +86,7 @@ export class FlashSaleService {
       await this.endQueue.add(
         `end-${flashSale.id}`,
         { flashSaleId: flashSale.id },
-        { delay: endDelay },
+        { delay: endDelay }
       );
     }
 
@@ -158,7 +158,7 @@ export class FlashSaleService {
 
   async getActiveFlashSales() {
     const now = new Date();
-    
+
     const flashSales = await this.prisma.flashSale.findMany({
       where: {
         isActive: true,
@@ -190,17 +190,17 @@ export class FlashSaleService {
           fs.items.map(async (item) => {
             const stockKey = `${this.FLASH_SALE_STOCK_PREFIX}${item.id}`;
             const remainingStock = await this.redisService.get(stockKey);
-            
+
             return {
               ...item,
               remainingStock: remainingStock ? parseInt(remainingStock) : item.flashStock,
               originalPrice: item.product.price,
             };
-          }),
+          })
         );
-        
+
         return { ...fs, items: enrichedItems };
-      }),
+      })
     );
 
     return enrichedFlashSales;
@@ -316,7 +316,9 @@ export class FlashSaleService {
         remainingStock: remainingStock,
       });
 
-      this.logger.log(`Flash sale purchase successful: user ${userId}, item ${itemId}, quantity ${quantity}`);
+      this.logger.log(
+        `Flash sale purchase successful: user ${userId}, item ${itemId}, quantity ${quantity}`
+      );
 
       return { success: true, orderId: order.id };
     } catch (error) {
@@ -370,9 +372,9 @@ export class FlashSaleService {
         return {
           ...item,
           remainingStock,
-          soldPercentage: ((item.soldCount / (item.soldCount + remainingStock)) * 100),
+          soldPercentage: (item.soldCount / (item.soldCount + remainingStock)) * 100,
         };
-      }),
+      })
     );
 
     return { ...flashSale, items: itemsWithStock };

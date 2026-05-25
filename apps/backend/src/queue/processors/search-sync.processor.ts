@@ -3,7 +3,7 @@ import { Job } from 'bullmq';
 import { Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { MeilisearchClient } from '../../../../infrastructure/meilisearch/meilisearch.client';
-import { ProductEvents } from '@daka/shared-types';
+import { ProductEvents } from '@daka/shared-events';
 
 @Processor('search-sync')
 export class SearchSyncProcessor extends WorkerHost {
@@ -11,7 +11,7 @@ export class SearchSyncProcessor extends WorkerHost {
 
   constructor(
     private prisma: PrismaService,
-    private meilisearch: MeilisearchClient,
+    private meilisearch: MeilisearchClient
   ) {
     super();
   }

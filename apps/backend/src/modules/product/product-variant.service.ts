@@ -14,13 +14,13 @@ import { ProductEvents } from '@daka/shared-events';
 export class ProductVariantService {
   constructor(
     private prisma: PrismaService,
-    private eventProducer: EventProducer,
+    private eventProducer: EventProducer
   ) {}
 
   async create(
     sellerId: string,
     productId: string,
-    data: CreateVariantDto,
+    data: CreateVariantDto
   ): Promise<ProductVariant> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
@@ -38,7 +38,9 @@ export class ProductVariantService {
       },
     });
     if (existingVariant) {
-      throw new ConflictException(`Variant with name "${data.name}" already exists for this product`);
+      throw new ConflictException(
+        `Variant with name "${data.name}" already exists for this product`
+      );
     }
 
     // Check SKU uniqueness if provided
@@ -84,7 +86,7 @@ export class ProductVariantService {
     sellerId: string,
     productId: string,
     variantId: string,
-    data: UpdateVariantDto,
+    data: UpdateVariantDto
   ): Promise<ProductVariant> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
@@ -142,11 +144,7 @@ export class ProductVariantService {
     return updatedVariant;
   }
 
-  async delete(
-    sellerId: string,
-    productId: string,
-    variantId: string,
-  ): Promise<void> {
+  async delete(sellerId: string, productId: string, variantId: string): Promise<void> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
       where: { id: productId, sellerId, deletedAt: null },
@@ -196,11 +194,7 @@ export class ProductVariantService {
     });
   }
 
-  async findOne(
-    sellerId: string,
-    productId: string,
-    variantId: string,
-  ): Promise<ProductVariant> {
+  async findOne(sellerId: string, productId: string, variantId: string): Promise<ProductVariant> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
       where: { id: productId, sellerId, deletedAt: null },
@@ -223,7 +217,7 @@ export class ProductVariantService {
     sellerId: string,
     productId: string,
     variantId: string,
-    newStock: number,
+    newStock: number
   ): Promise<ProductVariant> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({
@@ -284,7 +278,7 @@ export class ProductVariantService {
   async bulkCreate(
     sellerId: string,
     productId: string,
-    variants: CreateVariantDto[],
+    variants: CreateVariantDto[]
   ): Promise<ProductVariant[]> {
     // Verify product ownership
     const product = await this.prisma.product.findFirst({

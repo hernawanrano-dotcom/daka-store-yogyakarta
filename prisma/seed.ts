@@ -1,4 +1,5 @@
-import { PrismaClient, UserRole } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { UserRole } from '@daka/shared-types';
 import * as bcrypt from 'bcrypt';
 
 const prisma = new PrismaClient();
@@ -17,11 +18,11 @@ async function main() {
     update: {},
     create: {
       email: 'admin@dakastore.com',
-      password: hashedPassword,
-      name: 'Admin Daka',
+      password_hash: hashedPassword,
+      full_name: 'Admin Daka',
       phone: '081234567890',
       role: UserRole.admin,
-      isVerified: true,
+      is_verified: true,
     },
   });
 
@@ -38,10 +39,10 @@ async function main() {
       update: {},
       create: {
         email: seller.email,
-        password: hashedPassword,
-        name: seller.name,
+        password_hash: hashedPassword,
+        full_name: seller.name,
         role: UserRole.seller,
-        isVerified: true,
+        is_verified: true,
       },
     });
   }
@@ -59,30 +60,10 @@ async function main() {
       update: {},
       create: {
         email: buyer.email,
-        password: hashedPassword,
-        name: buyer.name,
+        password_hash: hashedPassword,
+        full_name: buyer.name,
         role: UserRole.buyer,
-        isVerified: true,
-      },
-    });
-  }
-
-  // ==================== CATEGORIES ====================
-  console.log('📝 Seeding categories...');
-
-  const categories = [
-    { name: 'Elektronik', slug: 'elektronik' },
-    { name: 'Fashion', slug: 'fashion' },
-    { name: 'Makanan', slug: 'makanan' },
-  ];
-
-  for (const cat of categories) {
-    await prisma.category.upsert({
-      where: { slug: cat.slug },
-      update: {},
-      create: {
-        name: cat.name,
-        slug: cat.slug,
+        is_verified: true,
       },
     });
   }
@@ -103,19 +84,13 @@ async function main() {
     if (s.email === 'seller3@dakastore.com') sellerMap['seller3'] = s.id;
   }
 
-  // Get category IDs
-  const elektronik = await prisma.category.findUnique({ where: { slug: 'elektronik' } });
-  const fashion = await prisma.category.findUnique({ where: { slug: 'fashion' } });
-  const makanan = await prisma.category.findUnique({ where: { slug: 'makanan' } });
-
   const products = [
     {
       name: 'iPhone 15 Pro',
       slug: 'iphone-15-pro',
       price: 15000000,
       stock: 10,
-      weight: 200,
-      categoryId: elektronik?.id,
+      weight_gram: 200,
       sellerId: sellerMap['seller1'],
     },
     {
@@ -123,8 +98,7 @@ async function main() {
       slug: 'macbook-pro-m3',
       price: 25000000,
       stock: 5,
-      weight: 1500,
-      categoryId: elektronik?.id,
+      weight_gram: 1500,
       sellerId: sellerMap['seller1'],
     },
     {
@@ -132,8 +106,7 @@ async function main() {
       slug: 'kemeja-pria',
       price: 150000,
       stock: 50,
-      weight: 200,
-      categoryId: fashion?.id,
+      weight_gram: 200,
       sellerId: sellerMap['seller2'],
     },
     {
@@ -141,8 +114,7 @@ async function main() {
       slug: 'dress-wanita',
       price: 200000,
       stock: 30,
-      weight: 250,
-      categoryId: fashion?.id,
+      weight_gram: 250,
       sellerId: sellerMap['seller2'],
     },
     {
@@ -150,8 +122,7 @@ async function main() {
       slug: 'keripik-tempe',
       price: 15000,
       stock: 1000,
-      weight: 100,
-      categoryId: makanan?.id,
+      weight_gram: 100,
       sellerId: sellerMap['seller3'],
     },
   ];
@@ -167,60 +138,10 @@ async function main() {
           description: `Deskripsi untuk ${product.name}`,
           price: product.price,
           stock: product.stock,
-          weight: product.weight,
-          categoryId: product.categoryId,
-          sellerId: product.sellerId,
-          isActive: true,
-        },
-      });
-    }
-  }
-
-  // ==================== ADDRESSES ====================
-  console.log('📝 Seeding addresses...');
-
-  const buyerUsers = await prisma.user.findMany({
-    where: { role: UserRole.buyer },
-    select: { id: true },
-  });
-
-  const addresses = [
-    {
-      label: 'Rumah',
-      recipient: 'Budi Santoso',
-      phone: '081234567890',
-      address: 'Jl. Malioboro No 1',
-      city: 'Yogyakarta',
-      province: 'DI Yogyakarta',
-      postal: '55221',
-      isPrimary: true,
-    },
-    {
-      label: 'Kantor',
-      recipient: 'Budi Santoso',
-      phone: '081234567891',
-      address: 'Jl. Sudirman No 2',
-      city: 'Yogyakarta',
-      province: 'DI Yogyakarta',
-      postal: '55221',
-      isPrimary: false,
-    },
-  ];
-
-  for (const buyer of buyerUsers) {
-    for (let i = 0; i < addresses.length; i++) {
-      const addr = addresses[i];
-      await prisma.address.create({
-        data: {
-          userId: buyer.id,
-          label: addr.label,
-          recipient: addr.recipient,
-          phone: addr.phone,
-          address: addr.address,
-          city: addr.city,
-          province: addr.province,
-          postal: addr.postal,
-          isPrimary: addr.isPrimary,
+          weight_gram: product.weight_gram,
+          seller_id: product.sellerId,
+          is_active: true,
+          images: [],
         },
       });
     }
@@ -232,10 +153,10 @@ async function main() {
   const allUsers = await prisma.user.findMany({ select: { id: true } });
   for (const user of allUsers) {
     await prisma.wallet.upsert({
-      where: { userId: user.id },
+      where: { user_id: user.id },
       update: {},
       create: {
-        userId: user.id,
+        user_id: user.id,
         balance: 100000,
       },
     });

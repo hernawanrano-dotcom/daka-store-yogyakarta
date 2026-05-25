@@ -43,7 +43,7 @@ export class JntAdapter implements CourierAdapter {
       (error) => {
         this.logger.error(`JNT API Error: ${error.message}`, error.response?.data);
         throw error;
-      },
+      }
     );
   }
 
@@ -116,7 +116,7 @@ export class JntAdapter implements CourierAdapter {
           lng: params.toAddress.lng,
           postal_code: params.toAddress.postalCode,
         },
-        items: params.items.map(item => ({
+        items: params.items.map((item) => ({
           name: item.name,
           quantity: item.quantity,
           weight: item.weightGram,
@@ -208,7 +208,9 @@ export class JntAdapter implements CourierAdapter {
   /**
    * Map API status ke internal status
    */
-  private mapStatus(status: string): 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned' {
+  private mapStatus(
+    status: string
+  ): 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned' {
     const map: Record<string, any> = {
       WAITING: 'pending',
       PICKED: 'picked_up',
@@ -246,8 +248,14 @@ export class JntAdapter implements CourierAdapter {
    */
   private getMockRates(params: RateParams): Rate[] {
     // Hitung estimasi ongkir berdasarkan jarak dan berat
-    const distance = this.calculateDistance(params.originLat, params.originLng, params.destLat, params.destLng);
-    const basePrice = 10000 + Math.floor(distance * 2000) + Math.floor(params.weightGram / 1000) * 5000;
+    const distance = this.calculateDistance(
+      params.originLat,
+      params.originLng,
+      params.destLat,
+      params.destLng
+    );
+    const basePrice =
+      10000 + Math.floor(distance * 2000) + Math.floor(params.weightGram / 1000) * 5000;
     const maxPrice = basePrice + 20000;
 
     return [
@@ -341,7 +349,10 @@ export class JntAdapter implements CourierAdapter {
     const dLng = this.toRad(lng2 - lng1);
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(this.toRad(lat1)) * Math.cos(this.toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+      Math.cos(this.toRad(lat1)) *
+        Math.cos(this.toRad(lat2)) *
+        Math.sin(dLng / 2) *
+        Math.sin(dLng / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }

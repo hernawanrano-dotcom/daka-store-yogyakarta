@@ -1,4 +1,10 @@
-import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -38,7 +44,7 @@ export class DisputeService {
     private prisma: PrismaService,
     private cloudinaryService: CloudinaryService,
     private eventEmitter: EventEmitter2,
-    @InjectQueue('dispute.resolve') private resolveQueue: Queue,
+    @InjectQueue('dispute.resolve') private resolveQueue: Queue
   ) {}
 
   async createDispute(data: CreateDisputeDTO) {
@@ -172,9 +178,7 @@ export class DisputeService {
   }
 
   async getUserDisputes(userId: string, role: 'buyer' | 'seller', page = 1, limit = 10) {
-    const where = role === 'buyer' 
-      ? { buyerId: userId }
-      : { sellerId: userId };
+    const where = role === 'buyer' ? { buyerId: userId } : { sellerId: userId };
 
     const skip = (page - 1) * limit;
 
@@ -286,9 +290,7 @@ export class DisputeService {
       throw new BadRequestException('Dispute already resolved');
     }
 
-    const newStatus = data.verdict === 'BUYER_WIN' 
-      ? 'RESOLVED_BUYER_WIN' 
-      : 'RESOLVED_SELLER_WIN';
+    const newStatus = data.verdict === 'BUYER_WIN' ? 'RESOLVED_BUYER_WIN' : 'RESOLVED_SELLER_WIN';
 
     // Update dispute
     const updatedDispute = await this.prisma.dispute.update({

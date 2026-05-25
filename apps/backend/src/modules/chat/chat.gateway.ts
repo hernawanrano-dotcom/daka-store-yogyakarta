@@ -10,7 +10,9 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { ChatService } from './chat.service';
+import { EventBusService } from '../../common/event-bus/event-bus.service';
 import { JwtService } from '@nestjs/jwt';
+import { EngagementEvents } from '@daka/shared-events';
 
 interface ChatMessage {
   toUserId: string;
@@ -42,6 +44,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private chatService: ChatService,
     private jwtService: JwtService,
+    private eventBus: EventBusService
   ) {}
 
   async handleConnection(client: Socket) {
@@ -72,7 +75,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.join(`user:${userId}`);
 
       this.logger.log(`Client ${client.id} connected as user ${userId}`);
-      
+
       // Send unread messages count
       const unreadCount = await this.chatService.getUnreadCount(userId);
       client.emit('unread_count', { count: unreadCount });
@@ -85,7 +88,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: Socket) {
     const userId = client.data.userId;
     if (userId && this.userSockets.has(userId)) {
-      const sockets = this.userSockets.get(userId).filter(id => id !== client.id);
+      const sockets = this.userSockets.get(userId).filter((id) => id !== client.id);
       if (sockets.length === 0) {
         this.userSockets.delete(userId);
       } else {
@@ -98,24 +101,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('join_room')
   async handleJoinRoom(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { orderId: string; sellerId: string; buyerId: string },
+    @MessageBody() data: { orderId: string; sellerId: string; buyerId: string }
   ) {
     const userId = client.data.userId;
     const roomName = `order:${data.orderId}`;
-    
+
     // Verify user is either buyer or seller
     if (userId === data.buyerId || userId === data.sellerId) {
       client.join(roomName);
       client.data.currentRoom = roomName;
       this.logger.log(`User ${userId} joined room ${roomName}`);
-      
+
       // Load previous messages
       const messages = await this.chatService.getConversation(
         data.orderId,
         data.buyerId,
-        data.sellerId,
+        data.sellerId
       );
-      
+
       client.emit('messages_history', messages);
     } else {
       client.emit('error', { message: 'Unauthorized to join this room' });
@@ -132,10 +135,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('send_message')
-  async handleSendMessage(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: ChatMessage,
-  ) {
+  async handleSendMessage(@ConnectedSocket() client: Socket, @MessageBody() data: ChatMessage) {
     const fromUserId = client.data.userId;
     const { toUserId, message, imageUrl, orderId } = data;
 
@@ -174,6 +174,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       }
 
+      // Publish NEW_CHAT_MESSAGE event
+      await this.eventBus.publishOutbox(EngagementEvents.NEW_CHAT_MESSAGE, {
+        messageId: savedMessage.id,
+        fromUserId,
+        toUserId,
+        orderId,
+        message,
+        imageUrl,
+        createdAt: savedMessage.createdAt.toISOString(),
+      });
+
       // Acknowledge to sender
       client.emit('message_sent', {
         id: savedMessage.id,
@@ -188,10 +199,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('typing')
-  handleTyping(
-    @ConnectedSocket() client: Socket,
-    @MessageBody() data: TypingEvent,
-  ) {
+  handleTyping(@ConnectedSocket() client: Socket, @MessageBody() data: TypingEvent) {
     const fromUserId = client.data.userId;
     const { toUserId, isTyping } = data;
 
@@ -204,13 +212,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('mark_read')
   async handleMarkRead(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { fromUserId: string },
+    @MessageBody() data: { fromUserId: string }
   ) {
     const userId = client.data.userId;
     const { fromUserId } = data;
 
     await this.chatService.markMessagesAsRead(userId, fromUserId);
-    
+
     // Notify sender that messages are read
     this.server.to(`user:${fromUserId}`).emit('messages_read', {
       byUserId: userId,

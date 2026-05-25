@@ -24,12 +24,12 @@ export class WishlistController {
   async getUserWishlist(
     @CurrentUser('id') userId: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     const result = await this.wishlistService.getUserWishlist(
       userId,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 10,
+      limit ? parseInt(limit) : 10
     );
     return {
       success: true,
@@ -39,10 +39,7 @@ export class WishlistController {
   }
 
   @Get('check/:productId')
-  async isInWishlist(
-    @CurrentUser('id') userId: string,
-    @Param('productId') productId: string,
-  ) {
+  async isInWishlist(@CurrentUser('id') userId: string, @Param('productId') productId: string) {
     const data = await this.wishlistService.isInWishlist(userId, productId);
     return {
       success: true,
@@ -53,10 +50,7 @@ export class WishlistController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async addToWishlist(
-    @CurrentUser('id') userId: string,
-    @Body() dto: AddToWishlistDto,
-  ) {
+  async addToWishlist(@CurrentUser('id') userId: string, @Body() dto: AddToWishlistDto) {
     const data = await this.wishlistService.addToWishlist(userId, dto.productId);
     return {
       success: true,
@@ -69,7 +63,7 @@ export class WishlistController {
   @HttpCode(HttpStatus.OK)
   async removeFromWishlist(
     @CurrentUser('id') userId: string,
-    @Param('productId') productId: string,
+    @Param('productId') productId: string
   ) {
     await this.wishlistService.removeFromWishlist(userId, productId);
     return {

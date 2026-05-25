@@ -28,7 +28,7 @@ export class NotificationService {
     private prisma: PrismaService,
     private emailService: EmailService,
     @InjectQueue('notification.email') private emailQueue: Queue,
-    @InjectQueue('notification.push') private pushQueue: Queue,
+    @InjectQueue('notification.push') private pushQueue: Queue
   ) {}
 
   async create(createDto: CreateNotificationDTO) {
@@ -165,7 +165,7 @@ export class NotificationService {
 
   async sendWelcomeEmail(userId: string, email: string, name: string) {
     await this.emailService.sendWelcomeEmail(email, name);
-    
+
     await this.create({
       userId,
       type: NotificationType.SYSTEM,

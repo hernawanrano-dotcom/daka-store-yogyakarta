@@ -14,12 +14,14 @@ export class RefundProcessor extends WorkerHost {
     private prisma: PrismaService,
     private midtrans: MidtransClient,
     private walletService: WalletService,
-    private journalService: JournalService,
+    private journalService: JournalService
   ) {
     super();
   }
 
-  async process(job: Job<{ refundId: string; paymentId: string; orderId: string; amount: number }>): Promise<any> {
+  async process(
+    job: Job<{ refundId: string; paymentId: string; orderId: string; amount: number }>
+  ): Promise<any> {
     const { refundId, paymentId, orderId, amount } = job.data;
 
     this.logger.log(`Processing refund for order: ${orderId}, amount: ${amount}`);

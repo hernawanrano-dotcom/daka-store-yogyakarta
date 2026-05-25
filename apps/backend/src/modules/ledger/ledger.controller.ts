@@ -6,7 +6,7 @@ import { WithdrawService } from './withdraw.service';
 export class LedgerController {
   constructor(
     private walletService: WalletService,
-    private withdrawService: WithdrawService,
+    private withdrawService: WithdrawService
   ) {}
 
   @Get('wallet/me')
@@ -31,7 +31,7 @@ export class LedgerController {
   async getWalletTransactions(
     @Req() req: any,
     @Query('page') page: string = '1',
-    @Query('limit') limit: string = '10',
+    @Query('limit') limit: string = '10'
   ) {
     const userId = req.user?.id;
     const wallet = await this.walletService.getWalletByUserId(userId);
@@ -39,7 +39,7 @@ export class LedgerController {
     const result = await this.walletService.getTransactionHistory(
       wallet.id,
       parseInt(page),
-      parseInt(limit),
+      parseInt(limit)
     );
 
     return {
@@ -53,12 +53,13 @@ export class LedgerController {
   @Post('wallet/withdraw')
   async requestWithdraw(
     @Req() req: any,
-    @Body() body: {
+    @Body()
+    body: {
       amount: number;
       bankName: string;
       bankAccount: string;
       bankAccountName: string;
-    },
+    }
   ) {
     const userId = req.user?.id;
 
@@ -67,7 +68,7 @@ export class LedgerController {
       body.amount,
       body.bankName,
       body.bankAccount,
-      body.bankAccountName,
+      body.bankAccountName
     );
 
     return {

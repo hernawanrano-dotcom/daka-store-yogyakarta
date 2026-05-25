@@ -17,7 +17,7 @@ export class ProductSearchController {
     @Query('minPrice') minPrice?: string,
     @Query('maxPrice') maxPrice?: string,
     @Query('minRating') minRating?: string,
-    @Query('sort') sort?: string,
+    @Query('sort') sort?: string
   ) {
     const limitNum = limit ? parseInt(limit) : 20;
     const offset = page ? (parseInt(page) - 1) * limitNum : 0;

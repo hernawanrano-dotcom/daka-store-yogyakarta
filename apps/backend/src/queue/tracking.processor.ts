@@ -7,6 +7,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CourierRegistry } from '../modules/courier/courier.registry';
 import { CourierService } from '../modules/courier/courier.service';
 
+// Top-level types for tracking info
+type TrackingStatus = 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned';
+interface TrackingInfo {
+  shipmentId: string;
+  status: TrackingStatus;
+  location: string;
+  timestamp: string;
+  description: string;
+}
+
 @Processor('tracking')
 export class TrackingProcessor extends WorkerHost {
   private readonly logger = new Logger(TrackingProcessor.name);
@@ -31,7 +41,7 @@ export class TrackingProcessor extends WorkerHost {
       await adapter.handleWebhook?.(payload, headers);
 
       // Extract tracking info dari payload (format beda per kurir)
-      const trackingInfo = this.extractTrackingInfo(courierName, payload);
+      const trackingInfo = await this.extractTrackingInfo(courierName, payload);
 
       if (trackingInfo) {
         // Update tracking status di database
@@ -55,16 +65,10 @@ export class TrackingProcessor extends WorkerHost {
   /**
    * Extract tracking info dari payload sesuai format kurir
    */
-  private extractTrackingInfo(
+  private async extractTrackingInfo(
     courierName: string,
     payload: any,
-  ): {
-    shipmentId: string;
-    status: 'pending' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'returned';
-    location: string;
-    timestamp: string;
-    description: string;
-  } | null {
+  ): Promise<TrackingInfo | null> {
     try {
       let trackingNumber: string;
       let status: string;

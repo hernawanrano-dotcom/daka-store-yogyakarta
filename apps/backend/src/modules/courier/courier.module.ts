@@ -18,19 +18,14 @@ import { GrabAdapter } from './adapters/grab.adapter';
 import { PosAdapter } from './adapters/pos.adapter';
 
 @Module({
-  imports: [
-    BullModule.registerQueue(
-      { name: 'tracking' },
-      { name: 'polling' },
-    ),
-  ],
+  imports: [BullModule.registerQueue({ name: 'tracking' }, { name: 'polling' })],
   controllers: [CourierController, WebhookController],
   providers: [
     // Core Services
     PrismaService,
     CourierService,
     CourierRegistry,
-    
+
     // Adapters (semua di-inject)
     JntAdapter,
     DakaSamedayAdapter,

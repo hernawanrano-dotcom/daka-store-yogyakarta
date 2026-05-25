@@ -10,7 +10,7 @@ export class EscrowService {
   constructor(
     private prisma: PrismaService,
     private journalService: JournalService,
-    private walletService: WalletService,
+    private walletService: WalletService
   ) {}
 
   async holdFunds(orderId: string, buyerId: string, amount: number): Promise<void> {
@@ -23,7 +23,7 @@ export class EscrowService {
       'DEBIT',
       'ORDER',
       orderId,
-      `Escrow hold for order ${orderId}`,
+      `Escrow hold for order ${orderId}`
     );
 
     // Journal entry
@@ -65,9 +65,9 @@ export class EscrowService {
     orderId: string,
     sellerId: string,
     amount: number,
-    feePercentage: number = 3,
+    feePercentage: number = 3
   ): Promise<{ sellerAmount: number; platformFee: number }> {
-    const fee = Math.floor(amount * feePercentage / 100);
+    const fee = Math.floor((amount * feePercentage) / 100);
     const sellerAmount = amount - fee;
 
     const sellerWallet = await this.walletService.getWalletByUserId(sellerId);
@@ -79,7 +79,7 @@ export class EscrowService {
       'CREDIT',
       'ORDER',
       orderId,
-      `Escrow release for order ${orderId}`,
+      `Escrow release for order ${orderId}`
     );
 
     // Journal entry
@@ -137,7 +137,7 @@ export class EscrowService {
       'CREDIT',
       'REFUND',
       orderId,
-      `Refund from escrow for order ${orderId}`,
+      `Refund from escrow for order ${orderId}`
     );
 
     // Journal entry

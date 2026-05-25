@@ -31,7 +31,7 @@ export class WalletService {
     type: 'CREDIT' | 'DEBIT',
     referenceType?: TransactionReferenceType,
     referenceId?: string,
-    description?: string,
+    description?: string
   ): Promise<number> {
     const wallet = await this.prisma.wallet.findUnique({
       where: { id: walletId },
@@ -47,7 +47,9 @@ export class WalletService {
       newBalance = wallet.balance + amount;
     } else {
       if (wallet.balance < amount) {
-        throw new BadRequestException(`Insufficient balance. Current: ${wallet.balance}, Required: ${amount}`);
+        throw new BadRequestException(
+          `Insufficient balance. Current: ${wallet.balance}, Required: ${amount}`
+        );
       }
       newBalance = wallet.balance - amount;
     }

@@ -1,17 +1,25 @@
-import { Injectable, NotFoundException, ConflictException, UnauthorizedException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+  UnauthorizedException,
+  BadRequestException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@daka/shared-config';
+import { PrismaService } from '../../prisma/prisma.service';
 import { comparePassword, hashPassword } from '@daka/shared-utils';
 import { UpdateProfileDto, ChangePasswordDto, SwitchRoleDto } from './dto';
 import { EventBusService } from '../../common/event-bus/event-bus.service';
-import { UserRole } from '@prisma/client';
+import { UserEvents } from '@daka/shared-events';
+import { UserRole } from '@daka/shared-types';
 
 @Injectable()
 export class UserService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
-    private eventBus: EventBusService,
+    private eventBus: EventBusService
   ) {}
 
   async findById(userId: string) {
@@ -150,13 +158,96 @@ export class UserService {
       {
         secret: process.env.JWT_SECRET,
         expiresIn: '15m',
-      },
+      }
     );
 
     return {
       user: updatedUser,
       accessToken: newAccessToken,
     };
+  }
+
+  async verifyEmail(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, is_verified: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.is_verified) {
+      throw new BadRequestException('Email already verified');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { is_verified: true },
+      select: {
+        id: true,
+        email: true,
+        full_name: true,
+        phone: true,
+        avatar: true,
+        role: true,
+        is_verified: true,
+        is_blocked: true,
+        last_login_at: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    await this.eventBus.publishOutbox(UserEvents.USER_EMAIL_VERIFIED, {
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      verifiedAt: new Date().toISOString(),
+    });
+
+    return updatedUser;
+  }
+
+  async blockUser(adminId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, is_blocked: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (user.is_blocked) {
+      throw new BadRequestException('User is already blocked');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: { is_blocked: true },
+      select: {
+        id: true,
+        email: true,
+        full_name: true,
+        phone: true,
+        avatar: true,
+        role: true,
+        is_verified: true,
+        is_blocked: true,
+        last_login_at: true,
+        created_at: true,
+        updated_at: true,
+      },
+    });
+
+    await this.eventBus.publishOutbox(UserEvents.USER_BLOCKED, {
+      userId: updatedUser.id,
+      email: updatedUser.email,
+      blockedBy: adminId,
+      blockedAt: new Date().toISOString(),
+    });
+
+    return updatedUser;
   }
 
   async getDevices(userId: string) {

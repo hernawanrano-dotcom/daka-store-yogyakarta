@@ -5,7 +5,13 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CourierRegistry } from './courier.registry';
-import { RateParams, Rate, OrderParams, OrderResult, TrackingStatus } from './interfaces/courier.adapter.interface';
+import {
+  RateParams,
+  Rate,
+  OrderParams,
+  OrderResult,
+  TrackingStatus,
+} from './interfaces/courier.adapter.interface';
 import { CourierName, TrackingStatus as PrismaTrackingStatus } from '@prisma/client';
 
 @Injectable()
@@ -16,7 +22,7 @@ export class CourierService {
     private prisma: PrismaService,
     private registry: CourierRegistry,
     @InjectQueue('tracking') private trackingQueue: Queue,
-    @InjectQueue('polling') private pollingQueue: Queue,
+    @InjectQueue('polling') private pollingQueue: Queue
   ) {}
 
   /**
@@ -156,8 +162,12 @@ export class CourierService {
         where: { id: shipmentId },
         data: {
           status: prismaStatus,
-          ...(trackingStatus.status === 'picked_up' && { pickedUpAt: new Date(trackingStatus.timestamp) }),
-          ...(trackingStatus.status === 'delivered' && { deliveredAt: new Date(trackingStatus.timestamp) }),
+          ...(trackingStatus.status === 'picked_up' && {
+            pickedUpAt: new Date(trackingStatus.timestamp),
+          }),
+          ...(trackingStatus.status === 'delivered' && {
+            deliveredAt: new Date(trackingStatus.timestamp),
+          }),
         },
       });
 
@@ -199,7 +209,11 @@ export class CourierService {
   /**
    * Tambahkan shipment ke polling queue (untuk kurir tanpa webhook)
    */
-  private async addToPollingQueue(shipmentId: string, trackingNumber: string, courierName: string): Promise<void> {
+  private async addToPollingQueue(
+    shipmentId: string,
+    trackingNumber: string,
+    courierName: string
+  ): Promise<void> {
     this.logger.log(`Adding shipment to polling queue: ${trackingNumber} for ${courierName}`);
 
     await this.pollingQueue.add(
@@ -213,7 +227,7 @@ export class CourierService {
         attempts: 5,
         backoff: { type: 'exponential', delay: 1000 },
         repeat: { pattern: '*/5 * * * *' }, // setiap 5 menit
-      },
+      }
     );
   }
 

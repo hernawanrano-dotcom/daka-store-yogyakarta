@@ -94,7 +94,7 @@ describe('PaymentService', () => {
         'ord_001',
         PaymentMethod.QRIS,
         150000,
-        'buyer@example.com',
+        'buyer@example.com'
       );
 
       expect(result).toHaveProperty('paymentId', 'pay_001');
@@ -106,7 +106,7 @@ describe('PaymentService', () => {
       (prisma.payment.findFirst as jest.Mock).mockResolvedValue(mockPayment);
 
       await expect(
-        service.createPayment('ord_001', PaymentMethod.QRIS, 150000, 'buyer@example.com'),
+        service.createPayment('ord_001', PaymentMethod.QRIS, 150000, 'buyer@example.com')
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -123,14 +123,16 @@ describe('PaymentService', () => {
     it('should reject invalid signature', async () => {
       (midtrans.verifySignature as jest.Mock).mockReturnValue(false);
 
-      await expect(
-        service.handleWebhook(mockPayload, 'invalid_signature'),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.handleWebhook(mockPayload, 'invalid_signature')).rejects.toThrow(
+        BadRequestException
+      );
     });
 
     it('should skip duplicate webhook', async () => {
       (midtrans.verifySignature as jest.Mock).mockReturnValue(true);
-      (prisma.idempotencyKey.findUnique as jest.Mock).mockResolvedValue({ key: 'ord_001_settlement' });
+      (prisma.idempotencyKey.findUnique as jest.Mock).mockResolvedValue({
+        key: 'ord_001_settlement',
+      });
 
       const result = await service.handleWebhook(mockPayload, 'valid_signature');
 

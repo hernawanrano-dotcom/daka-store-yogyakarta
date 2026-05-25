@@ -1,3 +1,4 @@
+// Daka Store Yogyakarta - Database Schema Final
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,6 +8,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ==================== ENUMS ====================
+
 enum UserRole {
   buyer
   seller
@@ -15,18 +18,26 @@ enum UserRole {
 
 enum OrderStatus {
   PENDING_PAYMENT
+  PAYMENT_EXPIRED
   PAID
-  PROCESSING
-  SHIPPED
+  READY_TO_SHIP
+  IN_TRANSIT
   DELIVERED
   COMPLETED
+  CANCEL_REQUESTED
   CANCELLED
+  REFUND_REQUESTED
+  REFUND_APPROVED
+  REFUNDED
+  FAILED
 }
 
 enum PaymentMethod {
   QRIS
   BANK_TRANSFER
   CREDIT_CARD
+  VIRTUAL_ACCOUNT
+  COD
 }
 
 enum PaymentStatus {
@@ -47,212 +58,508 @@ enum CourierName {
   POS
 }
 
-// ==================== USER & AUTH ====================
+enum NotificationType {
+  ORDER
+  PAYMENT
+  SHIPPING
+  PROMO
+  SYSTEM
+  CHAT
+}
+
+enum VoucherType {
+  MARKETPLACE
+  SELLER
+}
+
+enum VoucherDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  FREE_SHIPPING
+}
+
+// ==================== USER & AUTH DOMAIN (AI-1) ====================
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String
-  name        String
-  phone       String?
-  avatar      String?
-  role        UserRole @default(buyer)
-  isVerified  Boolean  @default(false)
-  isBlocked   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String         @id @default(cuid())
+  email         String         @unique
+  password_hash String
+  full_name     String
+  phone         String?
+  avatar        String?
+  role          UserRole       @default(buyer)
+  is_verified   Boolean        @default(false)
+  is_blocked    Boolean        @default(false)
+  last_login_at DateTime?
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  deleted_at    DateTime?
 
-  sessions    Session[]
-  addresses   Address[]
-  products    Product[]
-  carts       Cart?
-  orders      Order[]
-  wallets     Wallet?
-  reviews     Review[]
+  wallets        Wallet[]
+  master_orders  MasterOrder[]
+  sub_orders     SubOrder[]
+  withdraws      Withdraw[]        // ✅ TAMBAHAN (fix error #1)
+  vouchers       Voucher[]         // ✅ TAMBAHAN (fix error #2, sebagai seller)
+  userVouchers   UserVoucher[]     // ✅ TAMBAHAN (fix error #3)
 
   @@index([email])
   @@index([role])
 }
 
-model Session {
+// ==================== PAYMENT & LEDGER DOMAIN (AI-3) ====================
+
+model Payment {
+  id              String        @id @default(cuid())
+  master_order_id String?       @unique
+  amount          Int
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  midtrans_id     String?
+  midtrans_response Json?
+  paid_at         DateTime?
+  expired_at      DateTime?
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  master_order    MasterOrder?  @relation(fields: [master_order_id], references: [id])
+  refunds         Refund[]
+
+  @@index([master_order_id])
+  @@index([status])
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  user_id   String   @unique
+  balance   Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  user       User     @relation(fields: [user_id], references: [id])
+  transactions WalletTransaction[]
+
+  @@index([user_id])
+}
+
+model WalletTransaction {
   id           String   @id @default(cuid())
-  userId       String
-  refreshToken String   @unique
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
+  wallet_id    String
+  type         String
+  amount       Int
+  reference_type String
+  reference_id String
+  description  String?
+  balance_after Int
+  created_at   DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet       Wallet   @relation(fields: [wallet_id], references: [id])
+  journal_entries JournalEntry[]
 
-  @@index([userId])
+  @@index([wallet_id])
+  @@index([reference_type, reference_id])
 }
 
-model Address {
-  id        String   @id @default(cuid())
-  userId    String
-  label     String
-  recipient String
-  phone     String
-  address   String
-  city      String
-  province  String
-  postal    String
-  isPrimary Boolean  @default(false)
-  createdAt DateTime @default(now())
+model JournalEntry {
+  id             String   @id @default(cuid())
+  transaction_id String
+  account        String
+  debit          Int      @default(0)
+  credit         Int      @default(0)
+  created_at     DateTime @default(now())
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  orders Order[]
+  wallet_transaction WalletTransaction @relation(fields: [transaction_id], references: [id])
 
-  @@index([userId])
+  @@index([transaction_id])
+  @@index([account])
 }
 
-// ==================== PRODUCT ====================
+model Withdraw {
+  id                 String   @id @default(cuid())
+  user_id            String
+  amount             Int
+  bank_name          String
+  bank_account       String
+  bank_account_name  String
+  status             String   @default("PENDING")
+  notes              String?
+  processed_by       String?
+  processed_at       DateTime?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 
-model Category {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
-  parentId  String?
-  createdAt DateTime @default(now())
+  user               User     @relation(fields: [user_id], references: [id])
 
-  parent Category?  @relation("CategoryParent", fields: [parentId], references: [id])
-  child  Category[] @relation("CategoryParent")
-  products Product[]
-
-  @@index([slug])
+  @@index([user_id])
+  @@index([status])
 }
+
+model Refund {
+  id           String   @id @default(cuid())
+  sub_order_id String
+  payment_id   String
+  buyer_id     String
+  seller_id    String
+  amount       Int
+  reason       String
+  evidence_urls String[]
+  status       String   @default("PENDING")
+  admin_notes  String?
+  processed_by String?
+  created_at   DateTime @default(now())
+  processed_at DateTime?
+  completed_at DateTime?
+
+  subOrder     SubOrder @relation(fields: [sub_order_id], references: [id])
+  payment      Payment  @relation(fields: [payment_id], references: [id])
+
+  @@index([sub_order_id])
+  @@index([status])
+}
+
+model IdempotencyKey {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  response_status Int
+  response_body   Json?
+  created_at      DateTime @default(now())
+  expires_at      DateTime
+
+  @@index([key])
+  @@index([expires_at])
+}
+
+model OutboxMessage {
+  id           String   @id @default(cuid())
+  event_name   String
+  aggregate_id String
+  payload      Json
+  status       String   @default("pending")
+  retry_count  Int      @default(0)
+  error_message String?
+  created_at   DateTime @default(now())
+  published_at DateTime?
+
+  @@index([status])
+  @@index([created_at])
+}
+
+// ==================== ORDER DOMAIN (AI-5) ====================
+
+model MasterOrder {
+  id             String      @id @default(cuid())
+  buyer_id       String
+  address_id     String
+  total_amount   Int
+  shipping_fee   Int         @default(0)
+  platform_fee   Int         @default(0)
+  grand_total    Int
+  discount_amount Int        @default(0)
+  voucher_code   String?
+  payment_method PaymentMethod?
+  status         String      @default("PENDING_PAYMENT")
+  notes          String?
+  expires_at     DateTime
+  paid_at        DateTime?
+  completed_at   DateTime?
+  cancelled_at   DateTime?
+  created_at     DateTime    @default(now())
+  updated_at     DateTime    @updatedAt
+
+  buyer          User        @relation(fields: [buyer_id], references: [id])
+  payment        Payment?
+  sub_orders     SubOrder[]
+  userVouchers   UserVoucher[]
+  masterOrderVouchers MasterOrderVoucher[]
+
+  @@index([buyer_id])
+  @@index([status])
+  @@index([created_at])
+}
+
+model SubOrder {
+  id                    String      @id @default(cuid())
+  master_order_id       String
+  seller_id             String
+  origin_address_id     String?
+  destination_address_id String
+  courier_name          String?
+  courier_service       String?
+  tracking_number       String?
+  shipping_fee          Int         @default(0)
+  total_amount          Int
+  discount_amount       Int         @default(0)
+  voucher_code          String?
+  grand_total           Int
+  status                String      @default("PENDING_PAYMENT")
+  shipped_at            DateTime?
+  delivered_at          DateTime?
+  cancelled_at          DateTime?
+  created_at            DateTime    @default(now())
+  updated_at            DateTime    @updatedAt
+
+  master_order          MasterOrder @relation(fields: [master_order_id], references: [id])
+  seller                User        @relation(fields: [seller_id], references: [id])
+  items                 OrderItem[]
+  status_history        OrderStatusHistory[]
+  shipment              Shipment?
+  refunds               Refund[]
+
+  @@index([master_order_id])
+  @@index([seller_id])
+  @@index([status])
+  @@index([tracking_number])
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  sub_order_id  String
+  product_id    String
+  variant_id    String?
+  quantity      Int
+  price         Int
+  total_price   Int
+  created_at    DateTime @default(now())
+
+  sub_order     SubOrder @relation(fields: [sub_order_id], references: [id])
+
+  @@index([sub_order_id])
+}
+
+model OrderStatusHistory {
+  id           String   @id @default(cuid())
+  sub_order_id String
+  status       String
+  note         String?
+  created_by   String?
+  created_at   DateTime @default(now())
+
+  sub_order    SubOrder @relation(fields: [sub_order_id], references: [id])
+
+  @@index([sub_order_id])
+}
+
+model OrderHoldStock {
+  id         String   @id @default(cuid())
+  order_id   String
+  product_id String
+  quantity   Int
+  expires_at DateTime
+  created_at DateTime @default(now())
+
+  @@index([order_id])
+  @@index([expires_at])
+}
+
+// ==================== COURIER DOMAIN (AI-4) ====================
+
+model Shipment {
+  id                 String   @id @default(cuid())
+  sub_order_id       String   @unique
+  courier_name       String
+  courier_service    String
+  tracking_number    String
+  status             String   @default("PENDING")
+  origin_address     Json
+  destination_address Json
+  weight_gram        Int
+  shipping_fee       Int
+  awb_url            String?
+  label_url          String?
+  picked_up_at       DateTime?
+  delivered_at       DateTime?
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  sub_order          SubOrder @relation(fields: [sub_order_id], references: [id])
+  tracking_history   TrackingHistory[]
+
+  @@index([sub_order_id])
+  @@index([tracking_number])
+}
+
+model TrackingHistory {
+  id           String   @id @default(cuid())
+  shipment_id  String
+  status       String
+  location     String?
+  description  String?
+  raw_response Json?
+  created_at   DateTime @default(now())
+
+  shipment     Shipment @relation(fields: [shipment_id], references: [id])
+
+  @@index([shipment_id])
+}
+
+// ==================== PRODUCT DOMAIN (AI-2) ====================
 
 model Product {
   id          String   @id @default(cuid())
-  sellerId    String
+  seller_id   String
   name        String
   slug        String   @unique
   description String?
   price       Int
-  stock       Int
-  weight      Int
-  categoryId  String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  stock       Int      @default(0)
+  weight_gram Int
+  category_id String?
+  images      String[]
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  deleted_at  DateTime?
 
-  seller   User     @relation(fields: [sellerId], references: [id])
-  category Category? @relation(fields: [categoryId], references: [id])
-  reviews  Review[]
-  carts    CartItem[]
-  orderItems OrderItem[]
+  variants    ProductVariant[]
+  wishlists   Wishlist[]
+
+  @@index([seller_id])
+  @@index([slug])
+  @@index([is_active])
+}
+
+model ProductVariant {
+  id          String   @id @default(cuid())
+  product_id  String
+  name        String
+  sku         String?  @unique
+  price_adjust Int     @default(0)
+  stock       Int      @default(0)
+  image       String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  product     Product  @relation(fields: [product_id], references: [id])
+
+  @@index([product_id])
+}
+
+model Wishlist {
+  id         String   @id @default(cuid())
+  user_id    String
+  product_id String
+  created_at DateTime @default(now())
+
+  product    Product  @relation(fields: [product_id], references: [id])
+
+  @@unique([user_id, product_id])
+  @@index([user_id])
+}
+
+// ==================== NOTIFICATION DOMAIN (AI-6) ====================
+
+model Notification {
+  id         String   @id @default(cuid())
+  user_id    String
+  type       String
+  title      String
+  body       String
+  data       Json?
+  is_read    Boolean  @default(false)
+  read_at    DateTime?
+  created_at DateTime @default(now())
+
+  @@index([user_id])
+  @@index([is_read])
+}
+
+// ==================== FLASH SALE DOMAIN (AI-6) ====================
+
+model FlashSale {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  start_time  DateTime
+  end_time    DateTime
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  items       FlashSaleItem[]
+
+  @@index([slug])
+  @@index([is_active])
+}
+
+model FlashSaleItem {
+  id             String   @id @default(cuid())
+  flash_sale_id  String
+  product_id     String
+  variant_id     String?
+  flash_price    Int
+  flash_stock    Int
+  sold_count     Int      @default(0)
+  per_user_limit Int      @default(1)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  flash_sale     FlashSale @relation(fields: [flash_sale_id], references: [id])
+
+  @@unique([flash_sale_id, product_id, variant_id])
+  @@index([flash_sale_id])
+}
+
+// ==================== VOUCHER DOMAIN ====================
+
+model Voucher {
+  id             String               @id @default(cuid())
+  code           String               @unique
+  name           String
+  type           VoucherType
+  discountType   VoucherDiscountType
+  discountValue  Int
+  maxDiscount    Int?
+  minSpend       Int
+  usageLimit     Int?
+  perUserLimit   Int                  @default(1)
+  startDate      DateTime
+  endDate        DateTime
+  sellerId       String?
+  isActive       Boolean              @default(true)
+  usedCount      Int                  @default(0)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  seller         User?                @relation(fields: [sellerId], references: [id])
+  userVouchers   UserVoucher[]
+  masterOrderVouchers MasterOrderVoucher[]
 
   @@index([sellerId])
-  @@index([slug])
+  @@index([type])
+  @@index([isActive])
+  @@unique([code, isActive])
 }
 
-model Review {
-  id        String   @id @default(cuid())
-  userId    String
-  productId String
-  rating    Int
-  comment   String?
-  createdAt DateTime @default(now())
+model UserVoucher {
+  id         String      @id @default(cuid())
+  userId     String
+  voucherId  String
+  claimedAt  DateTime    @default(now())
+  expiresAt  DateTime?
+  isUsed     Boolean     @default(false)
+  usedAt     DateTime?
+  orderId    String?
+  createdAt  DateTime    @default(now())
 
-  user    User    @relation(fields: [userId], references: [id])
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@index([productId])
-}
-
-// ==================== CART & ORDER ====================
-
-model Cart {
-  id        String     @id @default(cuid())
-  userId    String     @unique
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-
-  user  User       @relation(fields: [userId], references: [id])
-  items CartItem[]
+  user       User        @relation(fields: [userId], references: [id])
+  voucher    Voucher     @relation(fields: [voucherId], references: [id])
+  order      MasterOrder? @relation(fields: [orderId], references: [id])
 
   @@index([userId])
+  @@index([voucherId])
+  @@index([isUsed])
 }
 
-model CartItem {
-  id        String   @id @default(cuid())
-  cartId    String
-  productId String
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
+model MasterOrderVoucher {
+  id             String      @id @default(cuid())
+  masterOrderId  String
+  voucherId      String
+  discountAmount Int         @default(0)
+  createdAt      DateTime    @default(now())
 
-  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  masterOrder    MasterOrder @relation(fields: [masterOrderId], references: [id])
+  voucher        Voucher     @relation(fields: [voucherId], references: [id])
 
-  @@unique([cartId, productId])
-}
-
-model Order {
-  id          String      @id @default(cuid())
-  buyerId     String
-  addressId   String
-  total       Int
-  status      OrderStatus @default(PENDING_PAYMENT)
-  paymentId   String?
-  trackingNo  String?
-  courier     CourierName?
-  notes       String?
-  paidAt      DateTime?
-  shippedAt   DateTime?
-  deliveredAt DateTime?
-  completedAt DateTime?
-  cancelledAt DateTime?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-
-  buyer   User    @relation(fields: [buyerId], references: [id])
-  address Address @relation(fields: [addressId], references: [id])
-  items   OrderItem[]
-  payment Payment?
-
-  @@index([buyerId])
-  @@index([status])
-}
-
-model OrderItem {
-  id        String   @id @default(cuid())
-  orderId   String
-  productId String
-  quantity  Int
-  price     Int
-  createdAt DateTime @default(now())
-
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-
-  @@index([orderId])
-}
-
-// ==================== PAYMENT ====================
-
-model Payment {
-  id         String        @id @default(cuid())
-  orderId    String        @unique
-  amount     Int
-  method     PaymentMethod
-  status     PaymentStatus @default(PENDING)
-  midtransId String?
-  paidAt     DateTime?
-  expiredAt  DateTime?
-  createdAt  DateTime      @default(now())
-
-  order Order @relation(fields: [orderId], references: [id])
-}
-
-// ==================== WALLET ====================
-
-model Wallet {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  balance   Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId])
+  @@index([masterOrderId])
+  @@index([voucherId])
 }

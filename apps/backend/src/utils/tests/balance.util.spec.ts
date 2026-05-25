@@ -1,4 +1,12 @@
-import { formatRupiah, parseRupiah, isValidAmount, calculateFee, calculateNetAmount, hasSufficientBalance, floatToRupiah } from '../balance.util';
+import {
+  formatRupiah,
+  parseRupiah,
+  isValidAmount,
+  calculateFee,
+  calculateNetAmount,
+  hasSufficientBalance,
+  floatToRupiah,
+} from '../balance.util';
 
 describe('Balance Utils', () => {
   describe('formatRupiah', () => {

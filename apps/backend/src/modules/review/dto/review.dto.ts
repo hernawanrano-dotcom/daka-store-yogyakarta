@@ -1,13 +1,4 @@
-import {
-  IsString,
-  IsInt,
-  IsOptional,
-  IsArray,
-  Min,
-  Max,
-  IsUUID,
-  IsBoolean,
-} from 'class-validator';
+import { IsString, IsInt, IsOptional, IsArray, Min, Max, IsUUID, IsBoolean } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
 export class CreateReviewDto {

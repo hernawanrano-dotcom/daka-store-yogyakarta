@@ -28,10 +28,7 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get()
-  async findAll(
-    @Query() query: ProductQueryDto,
-    @Req() req: RequestWithUser,
-  ) {
+  async findAll(@Query() query: ProductQueryDto, @Req() req: RequestWithUser) {
     const userId = req.user?.id;
     const result = await this.productService.findAll(query, userId);
     return {
@@ -47,12 +44,12 @@ export class ProductController {
   async findSellerProducts(
     @CurrentUser('id') sellerId: string,
     @Query('page') page?: string,
-    @Query('limit') limit?: string,
+    @Query('limit') limit?: string
   ) {
     const result = await this.productService.findBySeller(
       sellerId,
       page ? parseInt(page) : 1,
-      limit ? parseInt(limit) : 10,
+      limit ? parseInt(limit) : 10
     );
     return {
       success: true,
@@ -101,7 +98,7 @@ export class ProductController {
   async update(
     @CurrentUser('id') sellerId: string,
     @Param('id') id: string,
-    @Body() dto: UpdateProductDto,
+    @Body() dto: UpdateProductDto
   ) {
     const data = await this.productService.update(sellerId, id, dto);
     return {

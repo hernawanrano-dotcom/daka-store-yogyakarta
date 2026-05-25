@@ -11,7 +11,7 @@ export class PaymentService {
   constructor(
     private prisma: PrismaService,
     private stateMachine: PaymentStateMachine,
-    private midtrans: MidtransClient,
+    private midtrans: MidtransClient
   ) {}
 
   async findById(id: string) {
@@ -21,7 +21,6 @@ export class PaymentService {
   }
 
   async createPayment(orderId: string, method: PaymentMethod, amount: number, buyerEmail: string) {
-    // Cek apakah payment sudah ada
     const existing = await this.prisma.payment.findFirst({
       where: { master_order_id: orderId },
     });
@@ -30,18 +29,15 @@ export class PaymentService {
       throw new BadRequestException('Payment already exists for this order');
     }
 
-    // Hit expired_at (24 jam dari sekarang)
     const expiredAt = new Date();
     expiredAt.setHours(expiredAt.getHours() + 24);
 
-    // Panggil Midtrans
     const midtransResult = await this.midtrans.createTransaction({
       orderId,
       amount,
       buyerEmail,
     });
 
-    // Simpan ke database dengan status PENDING
     const payment = await this.prisma.payment.create({
       data: {
         master_order_id: orderId,
@@ -54,6 +50,24 @@ export class PaymentService {
       },
     });
 
+    // ✅ EVENT: PAYMENT_CREATED via outbox
+    await this.prisma.outboxMessage.create({
+      data: {
+        event_name: 'PAYMENT_CREATED',
+        aggregate_id: payment.id,
+        payload: {
+          paymentId: payment.id,
+          orderId: orderId,
+          amount: amount,
+          method: method,
+          createdAt: new Date().toISOString(),
+        },
+        status: 'pending',
+      },
+    });
+
+    this.logger.log(`Payment created: ${payment.id} for order ${orderId}`);
+
     return {
       paymentId: payment.id,
       paymentUrl: midtransResult.redirectUrl,
@@ -62,16 +76,14 @@ export class PaymentService {
   }
 
   async handleWebhook(payload: any, signature: string) {
-    // 1. Verifikasi signature
     const isValid = this.midtrans.verifySignature(payload, signature);
     if (!isValid) {
       this.logger.error('Invalid signature from Midtrans');
       throw new BadRequestException('Invalid signature');
     }
 
-    const { order_id, transaction_status, payment_type, transaction_id, gross_amount } = payload;
+    const { order_id, transaction_status, transaction_id, gross_amount } = payload;
 
-    // 2. Idempotency key
     const idempotencyKey = `${order_id}_${transaction_status}`;
     const existing = await this.prisma.idempotencyKey.findUnique({
       where: { key: idempotencyKey },
@@ -82,7 +94,6 @@ export class PaymentService {
       return;
     }
 
-    // 3. Simpan idempotency key
     await this.prisma.idempotencyKey.create({
       data: {
         key: idempotencyKey,
@@ -92,7 +103,6 @@ export class PaymentService {
       },
     });
 
-    // 4. Proses berdasarkan status
     if (transaction_status === 'settlement') {
       await this.handlePaymentSuccess(order_id, transaction_id, parseInt(gross_amount));
     } else if (transaction_status === 'pending') {
@@ -111,21 +121,18 @@ export class PaymentService {
       where: { master_order_id: orderId, midtrans_id: midtransId },
     });
 
-    if (!payment) {
-      this.logger.error(`Payment not found for order: ${orderId}`);
+    if (!payment || payment.status !== PaymentStatus.PENDING) {
       return;
     }
 
-    // Update status payment
     await this.stateMachine.transition(payment.id, PaymentStatus.SUCCESS);
 
-    // Update paid_at
     await this.prisma.payment.update({
       where: { id: payment.id },
       data: { paid_at: new Date() },
     });
 
-    // Save ke outbox (bukan publish langsung!)
+    // ✅ EVENT: PAYMENT_SUCCESS via outbox
     await this.prisma.outboxMessage.create({
       data: {
         event_name: 'PAYMENT_SUCCESS',

@@ -7,12 +7,7 @@ import { MidtransClient } from './midtrans.client';
 
 @Module({
   controllers: [PaymentController],
-  providers: [
-    PaymentService,
-    PaymentStateMachine,
-    MidtransClient,
-    PrismaService,
-  ],
+  providers: [PaymentService, PaymentStateMachine, MidtransClient, PrismaService],
   exports: [PaymentService],
 })
 export class PaymentModule {}

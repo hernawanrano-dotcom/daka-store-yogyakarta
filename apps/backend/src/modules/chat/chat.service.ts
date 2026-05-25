@@ -35,7 +35,13 @@ export class ChatService {
     }
   }
 
-  async getConversation(orderId: string, buyerId: string, sellerId: string, limit = 50, before?: Date) {
+  async getConversation(
+    orderId: string,
+    buyerId: string,
+    sellerId: string,
+    limit = 50,
+    before?: Date
+  ) {
     const where: any = {
       orderId,
       OR: [
@@ -70,7 +76,7 @@ export class ChatService {
 
     for (const msg of messages) {
       const partnerId = msg.fromUserId === userId ? msg.toUserId : msg.fromUserId;
-      
+
       if (!conversations.has(partnerId)) {
         // Get partner details
         const partner = await this.prisma.user.findUnique({
@@ -97,7 +103,7 @@ export class ChatService {
     }
 
     return Array.from(conversations.values()).sort(
-      (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
+      (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime()
     );
   }
 

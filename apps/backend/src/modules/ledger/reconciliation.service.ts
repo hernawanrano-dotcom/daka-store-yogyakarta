@@ -9,7 +9,7 @@ export class ReconciliationService {
 
   constructor(
     private prisma: PrismaService,
-    private midtrans: MidtransClient,
+    private midtrans: MidtransClient
   ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_2AM)
@@ -39,11 +39,11 @@ export class ReconciliationService {
     for (const payment of dbPayments) {
       // Mock: cek mismatch
       const isMatch = true; // Di sini nanti panggil Midtrans API
-      
+
       if (!isMatch) {
         mismatchCount++;
         this.logger.warn(`Mismatch found for payment: ${payment.id}`);
-        
+
         // Create alert
         await this.prisma.outboxMessage.create({
           data: {
@@ -79,7 +79,7 @@ export class ReconciliationService {
 
     if (!isBalanced) {
       this.logger.error(`Journal is NOT balanced! Debit: ${totalDebit}, Credit: ${totalCredit}`);
-      
+
       await this.prisma.outboxMessage.create({
         data: {
           event_name: 'JOURNAL_IMBALANCE',

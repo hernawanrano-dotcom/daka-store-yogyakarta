@@ -8,7 +8,7 @@ export class WithdrawService {
 
   constructor(
     private prisma: PrismaService,
-    private walletService: WalletService,
+    private walletService: WalletService
   ) {}
 
   async requestWithdraw(
@@ -16,7 +16,7 @@ export class WithdrawService {
     amount: number,
     bankName: string,
     bankAccount: string,
-    bankAccountName: string,
+    bankAccountName: string
   ) {
     const wallet = await this.walletService.getWalletByUserId(userId);
 
@@ -32,7 +32,9 @@ export class WithdrawService {
     }
 
     if (wallet.balance < amount) {
-      throw new BadRequestException(`Saldo tidak mencukupi. Saldo saat ini: Rp ${wallet.balance.toLocaleString()}`);
+      throw new BadRequestException(
+        `Saldo tidak mencukupi. Saldo saat ini: Rp ${wallet.balance.toLocaleString()}`
+      );
     }
 
     // Hold balance (kurangi dulu)
@@ -42,7 +44,7 @@ export class WithdrawService {
       'DEBIT',
       'WITHDRAW',
       undefined,
-      `Withdraw request to ${bankName} - ${bankAccount}`,
+      `Withdraw request to ${bankName} - ${bankAccount}`
     );
 
     const withdraw = await this.prisma.withdraw.create({
@@ -143,7 +145,7 @@ export class WithdrawService {
       'CREDIT',
       'WITHDRAW',
       withdrawId,
-      `Withdraw rejected: ${reason}`,
+      `Withdraw rejected: ${reason}`
     );
 
     const updated = await this.prisma.withdraw.update({

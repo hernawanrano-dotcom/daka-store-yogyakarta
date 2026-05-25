@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { FlashSaleController } from './flash-sale.controller';
 import { FlashSaleService } from './flash-sale.service';
 import { PrismaModule } from '../../prisma/prisma.module';
-import { RedisModule } from '../../infrastructure/redis/redis.module';
+import { RedisModule } from '../../redis/redis.module';
 
 @Module({
   imports: [
